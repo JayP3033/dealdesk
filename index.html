@@ -644,7 +644,7 @@ body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(-
   </div>
 
   <div class="sb-foot">
-    <p>DealDesk v5 · <span>Florida · BBF</span><br/>Auto-saved · AI-powered</p>
+    <p>DealDesk v5 · <span>Florida · BBF</span><br/>Auto-saved · Always free</p>
     <button onclick="clearAllData()" style="margin-top:7px;background:none;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:rgba(255,255,255,.25);font-size:10px;padding:3px 9px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;width:100%;" onmouseover="this.style.color='#fca5a5';this.style.borderColor='rgba(200,50,50,.35)'" onmouseout="this.style.color='rgba(255,255,255,.25)';this.style.borderColor='rgba(255,255,255,.1)'">Clear all data</button>
   </div>
 
@@ -692,7 +692,7 @@ body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(-
 
     <!-- ═══ DASHBOARD ════════════════════════════ -->
     <div id="panel-dashboard" class="panel active">
-      <div class="ph"><h2>Florida CRE Command Center</h2><p>Multi-deal workspace · Contract Wizard · LOI Generator · 70+ Clause Library · AI-Powered Intelligence</p></div>
+      <div class="ph"><h2>Florida CRE Command Center</h2><p>Multi-deal workspace · Contract Wizard · LOI Generator · 70+ Clause Library · Smart Templates · Always Free</p></div>
       <div class="hero">
         <div>
           <div class="hero-line"></div>
@@ -919,9 +919,9 @@ body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(-
               <div class="ct"><div class="bar"></div>Deal health score</div>
               <div style="display:flex;align-items:center;gap:18px;margin-bottom:16px;">
                 <div class="dhs-ring" id="health-ring"><div><div class="dhs-score" id="health-score">—</div><div class="dhs-label">Score</div></div></div>
-                <div style="flex:1;"><div style="font-size:15px;font-weight:600;color:var(--teal-d);margin-bottom:5px;" id="health-grade">Run a review to see your score</div><div style="font-size:12.5px;color:var(--g600);line-height:1.6;" id="health-summary">Click Run AI Review to analyze your active deal.</div></div>
+                <div style="flex:1;"><div style="font-size:15px;font-weight:600;color:var(--teal-d);margin-bottom:5px;" id="health-grade">Run a review to see your score</div><div style="font-size:12.5px;color:var(--g600);line-height:1.6;" id="health-summary">Click Run Health Check to analyze your active deal.</div></div>
               </div>
-              <button class="btn btn-teal" id="health-run-btn" onclick="runHealthCheck()">Run AI Review</button>
+              <button class="btn btn-teal" id="health-run-btn" onclick="runHealthCheck()">Run Health Check</button>
             </div>
             <div class="card"><div class="ct"><div class="bar"></div>Deal snapshot</div><div id="health-snapshot" style="font-size:13px;color:var(--g600);line-height:1.9;"></div></div>
           </div>
@@ -1179,32 +1179,6 @@ function clearAllData(){
 // ════════════════════════════
 //  CONFIG
 // ════════════════════════════
-// ══ API KEY — stored locally, never sent anywhere except Anthropic ══
-function getApiKey(){ return localStorage.getItem('dd_api_key')||''; }
-function setApiKey(k){ localStorage.setItem('dd_api_key',k.trim()); toast('API key saved!'); }
-function promptApiKey(){
-  const k = prompt('Enter your Anthropic API key (starts with sk-ant-):\n\nGet one free at console.anthropic.com → API Keys','');
-  if(k && k.startsWith('sk-')) { setApiKey(k); return k; }
-  if(k) toast('That doesn\'t look like a valid key — should start with sk-ant-');
-  return '';
-}
-async function aiCall(messages, max_tokens=1000){
-  let key = getApiKey();
-  if(!key){ key = promptApiKey(); if(!key) throw new Error('No API key — enter your key when prompted'); }
-  const r = await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': key,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens, messages})
-  });
-  if(!r.ok){ const err=await r.json(); throw new Error(err.error?.message||('HTTP '+r.status)); }
-  const d = await r.json();
-  return d.content?.map(b=>b.text||'').join('')||'';
-}
 
 // ════════════════════════════
 //  STATE
@@ -1690,42 +1664,23 @@ function updateLOINote(){
 async function genClauses(){
   if(!selectedClauses.size){ alert('Select at least one clause first.'); return; }
   const out=document.getElementById('clause-output');
-  out.innerHTML='<div class="loading"><div class="spinner"></div>Formatting Florida-standard clause language...</div>';
-  const list=[...selectedClauses].map(id=>{ const c=CLAUSES.find(x=>x.id===id); return c?`[${c.name}]:\n${c.text}`:''; }).filter(Boolean).join('\n\n');
-  try{
-    const text=await aiCall([{role:'user',content:`You are a Florida CRE and BBF business broker assistant. Format these clauses into a numbered TERMS AND CONTINGENCIES section. Keep all [PLACEHOLDERS]. After each heading add a brief note about what to fill in. Florida law governs.\n\n${list}`}],1400);
-    out.innerHTML=`<div class="obox" id="clause-text">${text}</div><div class="btn-group"><button class="btn btn-xs btn-out" onclick="copyEl('clause-text')">Copy</button><button class="btn btn-xs btn-teal" onclick="goPanel('loi',event)">Use in LOI →</button></div>`;
-  }catch(e){ out.innerHTML='<p style="font-size:12px;color:var(--plum);margin-top:8px;">⚠️ '+( e.message==='No API key — enter your key when prompted' ? 'Click an AI button and enter your Anthropic API key when prompted.' : 'Error: '+e.message)+'</p>'; console.error('AI call failed:',e); }
+  const clauses=CLAUSES.filter(c=>selectedClauses.has(c.id));
+  let h='<div class="obox" id="clause-text" style="max-height:500px;overflow-y:auto;">';
+  h+='<div style="font-size:11px;font-weight:600;color:var(--teal-d);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">TERMS AND CONTINGENCIES</div>';
+  clauses.forEach((c,i)=>{
+    h+='<div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--g100);">';
+    h+='<div style="font-size:11.5px;font-weight:700;color:var(--teal-d);margin-bottom:6px;">'+(i+1)+'. '+c.name.toUpperCase()+'</div>';
+    h+='<div style="font-size:12.5px;line-height:1.8;color:var(--g800);">'+c.text+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div class="btn-group" style="margin-top:10px;">';
+  h+='<button class="btn btn-sm btn-out" onclick="copyEl(\'clause-text\')">Copy all clauses</button>';
+  h+='</div>';
+  out.innerHTML=h;
+  toast(clauses.length+' clause'+(clauses.length===1?'':'s')+' formatted!');
 }
 
-// ════════════════════════════
-//  LOI GENERATOR
-// ════════════════════════════
-async function buildLOI(){
-  const addr=document.getElementById('loi-addr').value.trim(), buyer=document.getElementById('loi-buyer').value.trim();
-  const seller=document.getElementById('loi-seller').value.trim(), price=document.getElementById('loi-price').value.trim();
-  if(!addr||!buyer||!seller||!price){ alert('Fill in property/business, both parties, and price/rent.'); return; }
-  const out=document.getElementById('loi-out');
-  out.innerHTML='<div class="loading"><div class="spinner"></div>Writing your Florida LOI...</div>';
-  document.getElementById('stat-loi').textContent='Generating...';
-  const trans=document.getElementById('loi-trans').value, term=document.getElementById('loi-term').value;
-  const sqft=document.getElementById('loi-sqft').value, notes=document.getElementById('loi-notes').value;
-  const ptype=document.getElementById('loi-ptype').value;
-  const d=deals.find(x=>x.id===activeDealId);
-  if(d){ d.loiAddr=addr; d.loiBuyer=buyer; d.loiSeller=seller; d.loiPrice=price;
-    d.loiTerm=document.getElementById('loi-term').value||'';
-    d.loiSqft=document.getElementById('loi-sqft').value||'';
-    d.loiNotes=document.getElementById('loi-notes').value||'';
-    d.loiDone=true; saveState(); }
-  const cb=selectedClauses.size?'Include these Florida BBF Terms and Contingencies:\n'+[...selectedClauses].map(id=>{ const c=CLAUSES.find(x=>x.id===id); return c?`- ${c.name}: ${c.text}`:''; }).filter(Boolean).join('\n'):'';
-  const prompt=`Draft a professional Florida commercial real estate / BBF business sale Letter of Intent. Formal letter format. Use [DATE] as today's date.\n\nDeal:\n- Subject: ${addr} (${ptype}${sqft?', '+sqft:''})\n- ${trans==='lease'?'Tenant':'Buyer'}: ${buyer}\n- ${trans==='lease'?'Landlord':'Seller'}: ${seller}\n- ${trans==='lease'?'Proposed rent':'Purchase price'}: ${price}\n- ${trans==='lease'?'Lease term':'Closing timeline'}: ${term||'TBD'}\n${notes?'- Additional: '+notes:''}\n${cb}\n\nInclude: non-binding disclaimer, due diligence period, confidentiality, offer expiration. Use [AGENT NAME] as signing placeholder. Professional, complete, ready to send.`;
-  try{
-    const text=await aiCall([{role:'user',content:prompt}],1600);
-    out.innerHTML='<div class="obox" id="loi-text">'+text+'</div>'+'<div class="btn-group"><button class="btn btn-sm btn-out" onclick="copyEl('+"'loi-text'"+')">Copy LOI</button><button class="btn btn-sm btn-teal" onclick="printLOI()">Print / Save PDF</button></div>';
-    const lcb=document.getElementById('loi-copy-btn'); if(lcb) lcb.style.display='inline-flex';
-    document.getElementById('stat-loi').textContent='Generated'; toast('LOI generated!');
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;margin-top:8px;">⚠️ '+( e.message==='No API key — enter your key when prompted' ? 'Click an AI button and enter your Anthropic API key when prompted.' : 'Error: '+e.message)+'</p>'; document.getElementById('stat-loi').textContent='Error'; console.error('AI call failed:',e); }
-}
 function printLOI(){
   const text=document.getElementById('loi-text')?.innerText||'';
   const w=window.open('','_blank');
@@ -1746,21 +1701,35 @@ const SAMPLES={
 };
 function loadSample(k){ document.getElementById('exp-in').value=SAMPLES[k]||''; }
 async function explainClause(){
-  const clause=document.getElementById('exp-in').value.trim();
-  if(!clause){ alert('Paste a clause first.'); return; }
-  const out=document.getElementById('exp-out');
-  out.innerHTML='<div class="loading"><div class="spinner"></div>Reading the clause...</div>';
-  try{
-    const text=await aiCall([{role:'user',content:`You are a plain-English translator for Florida CRE and BBF contracts. Explain in 3 parts (under 180 words total):\\n\\n1. WHAT IT MEANS — plain English, like talking to a smart non-lawyer\\n2. WHY IT MATTERS — who it protects and why it exists\\n3. WATCH OUT FOR — what the broker or client should be careful about\\n\\nClause:\\n${clause}`}],700)
-    out.innerHTML=`<div style="font-size:13px;line-height:1.8;color:var(--g800);">${text.split('\n').join('<br/>')}</div>`;
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ '+( e.message==='No API key — enter your key when prompted' ? 'Click an AI button and enter your Anthropic API key when prompted.' : 'Error: '+e.message)+'</p>'; console.error('AI call failed:',e); }
+  const txt = document.getElementById('exp-in').value.trim();
+  if(!txt){ alert('Paste a clause first.'); return; }
+  const out = document.getElementById('exp-out');
+  const matched = CLAUSES.find(c=>
+    txt.toLowerCase().includes(c.name.toLowerCase().split(' ').slice(0,2).join(' ')) ||
+    c.text.toLowerCase().includes(txt.toLowerCase().substring(0,50).trim())
+  );
+  const block = (label, color, content) =>
+    '<div style="margin-bottom:14px;">'
+    +'<div style="font-size:10px;font-weight:700;color:'+color+';text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">'+label+'</div>'
+    +'<div style="font-size:13px;color:var(--g800);line-height:1.8;">'+content+'</div>'
+    +'</div>';
+  let h = '';
+  if(matched){
+    h += '<div style="margin-bottom:12px;"><span class="pill p-teal">'+matched.name+'</span></div>';
+    h += block('What it means','var(--teal-d)', matched.plain);
+    h += block('Why it matters','var(--teal-d)', matched.why);
+    h += block('Watch out for','var(--plum)', matched.watchout);
+  } else {
+    h += block('What it means','var(--teal-d)',
+      'This clause establishes a specific right, obligation, or condition between the parties. Read carefully to understand who must act, by when, and under what circumstances.');
+    h += block('Why it matters','var(--teal-d)',
+      'In Florida commercial transactions, unaddressed terms default to Florida Statutes \u2014 which may not favor your client. Explicit clauses override statutory defaults and reduce dispute risk.');
+    h += block('Watch out for','var(--plum)',
+      'Look for vague timeframes, undefined placeholders in brackets, one-sided obligations, automatic renewal language, and any waiver of statutory rights. Have your attorney review before signing.');
+  }
+  out.innerHTML = h;
 }
 
-// ════════════════════════════
-//  CALCULATORS
-// ════════════════════════════
-const fmt=n=>isNaN(n)||!isFinite(n)?'—':'$'+Math.round(n).toLocaleString();
-const fmtN=(n,d=2)=>isNaN(n)||!isFinite(n)?'—':n.toFixed(d);
 function cRes(label,val,sub,items){
   return`<div class="cresult"><div class="cr-lbl">${label}</div><div class="cr-val">${val}</div><div class="cr-sub">${sub}</div><div class="cgrid">${items.map(([l,v])=>`<div class="citem"><div class="ci-l">${l}</div><div class="ci-v">${v}</div></div>`).join('')}</div></div>`;
 }
@@ -1870,65 +1839,66 @@ document.addEventListener('keydown',e=>{
 // ════════════════════════════
 async function runHealthCheck(){
   const d = deals.find(x=>x.id===activeDealId);
-  if(!d){ toast('No active deal selected.'); return; }
+  if(!d){ toast('No active deal \u2014 create or select one first.'); return; }
   const btn = document.getElementById('health-run-btn');
-  btn.textContent='Analyzing deal...'; btn.disabled=true;
-  document.getElementById('health-flags').innerHTML='<div class="loading"><div class="spinner"></div>Running AI health review — checking for missing clauses, Florida-specific requirements, and red flags...</div>';
-  const selNames = [...selectedClauses].map(id=>{ const c=CLAUSES.find(x=>x.id===id); return c?c.name:''; }).filter(Boolean);
-  const prompt = `You are a senior Florida commercial real estate / BBF business broker reviewing a deal for gaps and risks. Be direct and specific.
-
-DEAL DETAILS:
-- Name: ${d.name}
-- Type: ${d.type} / ${d.ptype}
-- Status: ${d.status}
-- Value: ${d.value||'Not specified'}
-- Client/Parties: ${d.client||'Not specified'}
-- Target close: ${d.date||'Not specified'}
-- Notes: ${d.notes||'None'}
-- Clauses currently selected: ${selNames.length ? selNames.join(', ') : 'NONE selected yet'}
-
-Analyze this deal and respond with ONLY a JSON object in this exact format (no markdown, no backticks):
-{
-  "score": 72,
-  "grade": "B - Solid foundation, a few gaps",
-  "summary": "One sentence summary of deal health",
-  "flags": [
-    {"type": "critical", "title": "Flag title", "desc": "Specific explanation"},
-    {"type": "warning", "title": "Flag title", "desc": "Specific explanation"},
-    {"type": "tip", "title": "Tip title", "desc": "Specific explanation"},
-    {"type": "ok", "title": "What's good", "desc": "Specific explanation"}
-  ]
-}
-
-Flag types: "critical" = must fix before proceeding, "warning" = should address, "tip" = best practice, "ok" = already handled well.
-Be Florida-specific. Check for: missing contingencies for this property type, unsigned agreements that FL law requires (§475 Buyer Rep), DABT license for restaurants/bars, franchisor approval for franchises, SBA contingency if value suggests financing needed, non-compete for business sales, missing LOI non-binding disclaimer, earnest money terms, due diligence period. Score 0-100.`;
-
-  try{
-    const raw = await aiCall([{role:'user',content:prompt}],1200);
-    let result;
-    try{ result = JSON.parse(raw); } catch(e){ result = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
-    const score = result.score||0;
-    const ring = document.getElementById('health-ring');
-    const color = score>=80?'var(--teal)':score>=60?'var(--gold)':'var(--plum)';
-    ring.style.borderColor = color;
-    document.getElementById('health-score').textContent = score;
-    document.getElementById('health-score').style.color = color;
-    document.getElementById('health-grade').textContent = result.grade||'';
-    document.getElementById('health-summary').textContent = result.summary||'';
-    const icons = {critical:'🚨',warning:'⚠️',tip:'💡',ok:'✅'};
-    const flagCls = {critical:'flag-critical',warning:'flag-warning',tip:'flag-tip',ok:'flag-ok'};
-    const flags = result.flags||[];
-    document.getElementById('flag-count').textContent = flags.length+' items';
-    document.getElementById('health-flags').innerHTML = flags.map(f=>`
-      <div class="flag-item ${flagCls[f.type]||'flag-tip'}">
-        <span class="flag-icon">${icons[f.type]||'💡'}</span>
-        <div class="flag-text"><div class="flag-title">${f.title}</div><div class="flag-desc">${f.desc}</div></div>
-      </div>`).join('')||'<div style="font-size:13px;color:var(--g400);">No flags found.</div>';
-    btn.textContent='Run AI Review'; btn.disabled=false;
-  }catch(e){
-    document.getElementById('health-flags').innerHTML='<p style="color:var(--plum);font-size:13px;">Connection error — try again.</p>';
-    btn.textContent='Run AI Review'; btn.disabled=false;
+  btn.textContent='Running...'; btn.disabled=true;
+  setTimeout(()=>{ btn.textContent='Run Health Check'; btn.disabled=false; },400);
+  const flags = [];
+  let score = 100;
+  const hasClauses = d.clauses ? d.clauses.size||[...d.clauses].length : 0;
+  const dealType = d.type||'Sale';
+  const ptype = d.ptype||'Office';
+  // Score based on completeness
+  if(!d.value){ flags.push({sev:'high',msg:'No deal value entered \u2014 critical for commission calculations and LOI.'}); score-=15; }
+  if(!d.client){ flags.push({sev:'high',msg:'No client/parties listed \u2014 required for any formal document.'}); score-=10; }
+  if(!d.date){ flags.push({sev:'med',msg:'No target close date \u2014 helps prioritize and set expectations.'}); score-=5; }
+  if(!d.loiDone){ flags.push({sev:'med',msg:'LOI not yet generated \u2014 go to LOI Generator to create one.'}); score-=10; }
+  if(hasClauses===0){ flags.push({sev:'high',msg:'No clauses selected \u2014 your LOI has no protections or contingencies.'}); score-=20; }
+  else if(hasClauses<3){ flags.push({sev:'med',msg:'Only '+hasClauses+' clause(s) selected \u2014 consider adding more Florida-specific protections.'}); score-=8; }
+  // Deal-type specific checks
+  if(dealType==='Sale'||dealType==='LOI'){
+    const hasDueDil = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&c.name.toLowerCase().includes('due diligence'); });
+    if(!hasDueDil){ flags.push({sev:'high',msg:'No due diligence clause \u2014 essential for any Florida purchase transaction.'}); score-=12; }
+    const hasFinancing = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&(c.name.toLowerCase().includes('financ')||c.name.toLowerCase().includes('mortgage')); });
+    if(!hasFinancing){ flags.push({sev:'med',msg:'No financing contingency \u2014 consider adding if buyer is not paying cash.'}); score-=8; }
   }
+  if(ptype==='Restaurant / Bar'||ptype==='Restaurant'){
+    const hasLiquor = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&(c.name.toLowerCase().includes('liquor')||c.name.toLowerCase().includes('dabt')||c.name.toLowerCase().includes('license')); });
+    if(!hasLiquor){ flags.push({sev:'high',msg:'Restaurant/Bar deal with no liquor license clause \u2014 DABT transfer is critical in Florida.'}); score-=15; }
+  }
+  if(ptype==='Franchise'){
+    const hasFranchisor = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&c.name.toLowerCase().includes('franchisor'); });
+    if(!hasFranchisor){ flags.push({sev:'high',msg:'Franchise deal with no franchisor approval clause \u2014 required for all FL franchise transfers.'}); score-=15; }
+  }
+  if(dealType==='Lease'){
+    const hasNNN = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&(c.name.toLowerCase().includes('nnn')||c.name.toLowerCase().includes('triple net')||c.name.toLowerCase().includes('cam')); });
+    if(!hasNNN){ flags.push({sev:'med',msg:'Lease deal with no NNN/CAM clause \u2014 clarify expense responsibilities.'}); score-=8; }
+  }
+  if(flags.length===0) flags.push({sev:'good',msg:'No major issues found. Review all placeholders in your LOI before sending.'});
+  score = Math.max(0,Math.min(100,score));
+  // Render score ring
+  const ring = document.getElementById('health-score-ring');
+  const scoreEl = document.getElementById('health-score-num');
+  const scoreLabel = document.getElementById('health-score-label');
+  if(ring){
+    const color = score>=80?'var(--teal)':score>=60?'var(--gold)':'var(--plum)';
+    const pct = score/100; const circ=251;
+    ring.style.stroke=color;
+    ring.style.strokeDashoffset = circ*(1-pct);
+  }
+  if(scoreEl) scoreEl.textContent=score;
+  if(scoreLabel) scoreLabel.textContent=score>=80?'Strong':score>=60?'Fair':'Needs Work';
+  const flagsEl = document.getElementById('health-flags');
+  if(flagsEl){
+    const sevColor={high:'var(--plum)',med:'var(--gold)',good:'var(--teal)'};
+    const sevLabel={high:'High','med':'Medium',good:'Good'};
+    flagsEl.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--g500);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">'+flags.length+' item'+(flags.length===1?'':'s')+'</div>'
+      + flags.map(f=>'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;padding:10px 12px;background:var(--g50);border-radius:8px;border-left:3px solid '+sevColor[f.sev]+';">'
+        +'<div style="font-size:10px;font-weight:700;color:'+sevColor[f.sev]+';text-transform:uppercase;padding-top:2px;white-space:nowrap;">'+sevLabel[f.sev]+'</div>'
+        +'<div style="font-size:12.5px;color:var(--g800);line-height:1.6;">'+f.msg+'</div>'
+        +'</div>').join('');
+  }
+  toast('Health check complete \u2014 score: '+score+'/100');
 }
 
 function updateHealthSnapshot(){
@@ -2143,18 +2113,61 @@ function renderCommission(){
 // ════════════════════════════
 //  EMAIL DRAFTER
 // ════════════════════════════
+
 const EMAIL_TEMPLATES = [
-  {icon:'📨',label:'Submit LOI',desc:'Send offer / LOI to other side',prompt:'Write a professional email submitting our Letter of Intent to the other party. Polite, confident, inviting response.'},
-  {icon:'🤝',label:'Intro & request showing',desc:'First contact with owner or listing agent',prompt:'Write a professional introductory email requesting an opportunity to view/discuss the property/business on behalf of our client.'},
-  {icon:'⏰',label:'Follow up — no response',desc:'3–5 days after LOI with no reply',prompt:'Write a firm but professional follow-up email. We submitted an LOI and have not heard back in several days. We remain interested and would like a response.'},
-  {icon:'✅',label:'Proceeding to PSA',desc:'Notify parties we are moving to formal contract',prompt:'Write an email notifying all parties that we are ready to proceed from the LOI to the formal Purchase and Sale Agreement (or Lease Agreement). Request that the other side\'s attorney prepare or review the formal contract.'},
-  {icon:'🔍',label:'Due diligence extension request',desc:'Request more time for due diligence',prompt:'Write a professional email requesting an extension of the due diligence period. We need additional time to complete our review of financial documents and inspections. Keep it professional and non-alarming.'},
-  {icon:'📅',label:'Closing delay notice',desc:'Notify of a delay in closing date',prompt:'Write a professional email notifying all parties of a brief delay in the closing date, requesting a short extension. Keep the tone calm and solution-oriented.'},
-  {icon:'💰',label:'Counter offer communication',desc:'Respond to a counter offer',prompt:'Write a professional email communicating a counter offer in response to the other party\'s terms. The tone should be collaborative but firm — we are serious buyers/sellers.'},
-  {icon:'❌',label:'Declining / withdrawing offer',desc:'Politely withdraw from a deal',prompt:'Write a professional, courteous email declining to proceed with this transaction. Keep the door open for future opportunities. Do not give specific reasons unless asked.'},
-  {icon:'📋',label:'Request financial documents',desc:'Ask seller for due diligence docs',prompt:'Write a professional email requesting the standard financial due diligence documents needed to proceed: 3 years of tax returns, P&L statements, lease copies, equipment list, and any other relevant records.'},
-  {icon:'🎉',label:'Congratulations — deal closed',desc:'Post-closing thank you to all parties',prompt:'Write a warm, professional congratulations email to all parties now that the transaction has successfully closed. Thank everyone for their cooperation and professionalism.'},
+  { label:'Introduction', icon:'👋', desc:'Intro to a new prospect or referral' },
+  { label:'Follow-Up', icon:'📨', desc:'Follow up after showing or meeting' },
+  { label:'Counter Offer', icon:'🤝', desc:'Present a counter to their offer' },
+  { label:'LOI Transmittal', icon:'📄', desc:'Send the LOI for review/signature' },
+  { label:'Due Diligence Request', icon:'🔍', desc:'Request documents from seller' },
+  { label:'Closing Checklist', icon:'✅', desc:'Pre-closing items for all parties' },
+  { label:'Commission Invoice', icon:'💰', desc:'Invoice for broker commission' },
+  { label:'Referral Thank You', icon:'🌟', desc:'Thank a referral source' },
+  { label:'Price Reduction', icon:'📉', desc:'Recommend a price adjustment' },
+  { label:'Lease Renewal', icon:'🔄', desc:'Initiate lease renewal discussion' },
 ];
+
+function getEmailBody(idx, d){
+  const name   = d ? d.name   : '[DEAL NAME]';
+  const client = d ? d.client : '[CLIENT NAME]';
+  const value  = d ? d.value  : '[VALUE]';
+  const addr   = d ? (d.loiAddr||d.name) : '[ADDRESS]';
+  const type   = d ? d.ptype  : '[PROPERTY TYPE]';
+  const today  = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  const templates = [
+    // 0 — Introduction
+    `Subject: ${type} Opportunity — ${name}\n\nDear [PROSPECT NAME],\n\nI hope this message finds you well. My name is [YOUR NAME] and I am a licensed Florida commercial real estate and business broker specializing in ${type} properties.\n\nI am reaching out because I believe the ${name} opportunity aligns closely with your acquisition profile. This is a ${type} offering${value?' listed at '+value:''}${addr?' located at '+addr:''}.\n\nI would welcome the opportunity to schedule a brief call to discuss whether this might be a fit for your portfolio.\n\nBest regards,\n[YOUR NAME]\n[BROKERAGE NAME]\n[PHONE] | [EMAIL]\nFL License #[LICENSE NUMBER]`,
+
+    // 1 — Follow-Up
+    `Subject: Following Up — ${name}\n\nDear ${client||'[CLIENT NAME]'},\n\nThank you for your time ${addr?'at '+addr:'recently'}. I wanted to follow up and see if you had any questions or thoughts after our meeting.\n\nAs discussed, the key highlights of this opportunity are:\n• [HIGHLIGHT 1]\n• [HIGHLIGHT 2]\n• [HIGHLIGHT 3]\n\nI am available to answer any questions or arrange another showing at your convenience. Please do not hesitate to reach out.\n\nBest regards,\n[YOUR NAME]\n[PHONE] | [EMAIL]`,
+
+    // 2 — Counter Offer
+    `Subject: Counter Offer — ${name}\n\nDear [OPPOSING PARTY / COUNSEL],\n\nThank you for submitting your offer dated [OFFER DATE] regarding ${name}${addr?' at '+addr:''}.\n\nAfter careful review, our client respectfully submits the following counter offer:\n\n• Purchase Price / Rent: ${value||'[COUNTER PRICE]'}\n• Closing / Possession: [DATE]\n• Due Diligence Period: [DAYS] business days\n• Earnest Money: [AMOUNT]\n• Additional Terms: [TERMS]\n\nThis counter offer is valid for three (3) business days from the date of this letter.\n\nPlease confirm receipt and advise as to your client\u2019s response.\n\nSincerely,\n[YOUR NAME] | FL License #[LICENSE NUMBER]`,
+
+    // 3 — LOI Transmittal
+    `Subject: Letter of Intent — ${name}\n\nDear ${client||'[CLIENT NAME]'},\n\nPlease find attached the Letter of Intent for ${name}${addr?' located at '+addr:''}.\n\nKey terms included:\n• Transaction: [PURCHASE / LEASE]\n• Price / Rent: ${value||'[AMOUNT]'}\n• Closing / Term: [DATE / DURATION]\n• Contingencies: [LIST KEY CONTINGENCIES]\n\nPlease review carefully and advise if you would like any changes before we present to the [seller/landlord]. Once approved, we will proceed to execution.\n\nThis LOI is non-binding and intended to outline proposed terms only. I recommend you review with your attorney before signing.\n\nBest regards,\n[YOUR NAME]\n[PHONE] | [EMAIL]`,
+
+    // 4 — Due Diligence Request
+    `Subject: Due Diligence Document Request — ${name}\n\nDear ${client||'[SELLER / LANDLORD]'},\n\nThank you for executing the Letter of Intent for ${name}. We are now entering the due diligence period and respectfully request the following documents at your earliest convenience:\n\nFINANCIALS\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u2022 3 years of tax returns / P&L statements\n\u2022 Current year YTD financials\n\u2022 Monthly sales records (trailing 12 months)\n\nLEGAL / OPERATIONAL\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u2022 Current lease agreement and any amendments\n\u2022 List of all licenses and permits\n\u2022 Vendor and supplier contracts\n\u2022 Employee list (titles and compensation, no SSN)\n\u2022 Any pending litigation or liens\n\nPROPERTY\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u2022 Survey and site plan\n\u2022 Environmental reports (if available)\n\u2022 Equipment list and condition report\n\nPlease send to [YOUR EMAIL]. Our due diligence period expires on [DATE].\n\nThank you for your cooperation.\n\n[YOUR NAME] | [PHONE]`,
+
+    // 5 — Closing Checklist
+    `Subject: Pre-Closing Checklist — ${name} | Closing: [DATE]\n\nDear All Parties,\n\nWe are approaching closing for ${name}. Please review the checklist below and confirm completion of your assigned items.\n\nBUYER / TENANT\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25a1 Final financing approval / proof of funds\n\u25a1 Entity documentation (if purchasing as LLC/Corp)\n\u25a1 Review and sign closing documents\n\u25a1 Certified funds / wire transfer arranged\n\u25a1 Transfer of licenses confirmed (DABT, business license, etc.)\n\nSELLER / LANDLORD\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25a1 Title cleared of all liens\n\u25a1 Final utility readings scheduled\n\u25a1 Keys, codes, and access transfer arranged\n\u25a1 Inventory count completed\n\u25a1 Non-compete agreement signed\n\nCLOSING AGENT / ATTORNEY\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25a1 Settlement statement issued\n\u25a1 Commission disbursement confirmed\n\u25a1 All parties available for [DATE] closing\n\nPlease advise of any outstanding items. Contact me immediately if any issues arise.\n\n[YOUR NAME] | [PHONE]`,
+
+    // 6 — Commission Invoice
+    `Subject: Commission Invoice — ${name}\n\nDate: ${today}\nInvoice #: [INVOICE NUMBER]\n\nFROM:\n[YOUR NAME / BROKERAGE]\n[ADDRESS]\n[PHONE] | [EMAIL]\nFL License #[LICENSE NUMBER]\n\nTO:\n[CLOSING AGENT / TITLE COMPANY]\n[ADDRESS]\n\nRE: Commission for ${name}${addr?' at '+addr:''}\n\nSERVICES RENDERED\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nTransaction price:     ${value||'[AMOUNT]'}\nTotal commission rate: [RATE]%\nTotal commission:      [GROSS COMMISSION]\nYour split ([SPLIT]%):    [YOUR PORTION]\nCo-broker ([SPLIT]%):     [CO-BROKER PORTION]\n\nAMOUNT DUE AT CLOSING: [YOUR PORTION]\n\nPayable to: [YOUR NAME / BROKERAGE]\nWire / ACH: [BANK INSTRUCTIONS]\n\nThank you for your business.\n\n[YOUR NAME]`,
+
+    // 7 — Referral Thank You
+    `Subject: Thank You for Your Referral\n\nDear [REFERRAL SOURCE],\n\nI wanted to take a moment to sincerely thank you for referring [CLIENT NAME] to me regarding ${name}.\n\nYour trust in my services means a great deal, and I want you to know I will take excellent care of your contact throughout this process.\n\n[OPTIONAL: Per our referral agreement, I will honor a [PERCENTAGE]% referral fee upon successful closing.]\n\nIf there is ever anything I can do to reciprocate or assist you with your own clients, please do not hesitate to ask.\n\nWith appreciation,\n[YOUR NAME]\n[PHONE] | [EMAIL]`,
+
+    // 8 — Price Reduction
+    `Subject: Market Update and Pricing Recommendation — ${name}\n\nDear ${client||'[CLIENT]'},\n\nI appreciate your continued confidence in our marketing efforts for ${name}. After reviewing the current market data and feedback from showings, I would like to discuss a strategic pricing adjustment.\n\nCURRENT MARKET ANALYSIS\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u2022 Days on market: [DAYS]\n\u2022 Showings to date: [NUMBER]\n\u2022 Comparable recent sales: [COMPS]\n\u2022 Market feedback: [SUMMARY]\n\nRECOMMENDED ADJUSTMENT\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nCurrent asking price:    ${value||'[CURRENT PRICE]'}\nRecommended new price:   [NEW PRICE]\nAdjustment:              [DIFFERENCE]\n\nThis adjustment should significantly increase buyer activity and bring qualified offers within [TIMEFRAME].\n\nI am available to discuss this at your convenience. Would [DATE/TIME] work for a call?\n\nBest regards,\n[YOUR NAME]`,
+
+    // 9 — Lease Renewal
+    `Subject: Lease Renewal Discussion — ${name}\n\nDear ${client||'[TENANT NAME]'},\n\nI hope business is going well. Your current lease for ${addr||name} is approaching its expiration on [LEASE END DATE], and I wanted to reach out proactively to discuss renewal options.\n\nCURRENT LEASE SUMMARY\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u2022 Current rent: ${value||'[CURRENT RENT]'}\n\u2022 Expiration: [DATE]\n\u2022 Current term: [TERM]\n\nPROPOSED RENEWAL TERMS\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u2022 Renewal term: [NEW TERM]\n\u2022 Proposed rent: [NEW RENT]\n\u2022 Escalations: [ANNUAL % INCREASE]\n\u2022 Tenant improvements: [TI ALLOWANCE OR N/A]\n\nI recommend beginning renewal negotiations at least [90] days before expiration to avoid holdover provisions. I am here to represent your interests throughout this process.\n\nPlease let me know a good time to connect.\n\n[YOUR NAME] | [PHONE]`,
+  ];
+  return templates[idx] || '';
+}
 
 function renderEmailTemplates(){
   const el = document.getElementById('email-templates');
@@ -2170,139 +2183,15 @@ function renderEmailTemplates(){
 }
 
 async function draftEmail(templateIdx){
-  const t = EMAIL_TEMPLATES[templateIdx];
   const d = deals.find(x=>x.id===activeDealId);
-  const dealCtx = d
-    ? 'Active deal context:\n- Deal: '+d.name+'\n- Type: '+d.type+' / '+d.ptype+'\n- Value: '+(d.value||'not specified')+'\n- Parties: '+(d.client||'not specified')+'\n- Close: '+(d.date||'not specified')+'\n'
-    : 'No active deal — write generically for a Florida CRE transaction.\n';
-  const tone = (document.getElementById('email-tone')||{value:'professional'}).value||'professional';
-  const prompt = 'You are a Florida CRE / BBF broker. Write a concise, '+tone+' email.\n\n'+dealCtx+'\nEmail purpose: '+t.prompt+'\n\nFormat: Subject line first, blank line, then body. Sign off as [AGENT NAME], [BROKERAGE]. Keep it tight.';
-  await doEmailDraft(prompt);
-}
-
-async function draftCustomEmail(){
-  const custom = document.getElementById('email-custom').value.trim();
-  if(!custom){ alert('Describe what you need first.'); return; }
-  const d = deals.find(x=>x.id===activeDealId);
-  const dealCtx = d
-    ? 'Active deal: '+d.name+' · '+d.type+' / '+d.ptype+' · Value: '+(d.value||'not specified')+' · Parties: '+(d.client||'not specified')+'\n'
-    : 'No active deal.\n';
-  const tone = (document.getElementById('email-tone')||{value:'professional'}).value||'professional';
-  const prompt = 'You are a Florida CRE / BBF broker. Write a '+tone+' email.\n\n'+dealCtx+'\nRequest: '+custom+'\n\nFormat: Subject line first, blank line, then body. Sign off as [AGENT NAME], [BROKERAGE].';
-  await doEmailDraft(prompt);
-}
-
-async function doEmailDraft(prompt){
   const out = document.getElementById('email-result');
-  out.innerHTML='<div class="loading"><div class="spinner"></div>Writing your email...</div>';
-  document.getElementById('copy-email-btn').style.display='none';
-  try{
-    const text = await aiCall([{role:'user',content:prompt}],600);
-    out.innerHTML='<div class="email-out" id="email-result-inner">'+text.split('\n').join('<br/>')+'</div>';
-    document.getElementById('copy-email-btn').style.display='inline-flex';
-    document.getElementById('copy-email-btn').style.display='inline-flex';
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ '+( e.message==='No API key — enter your key when prompted' ? 'Click an AI button and enter your Anthropic API key when prompted.' : 'Error: '+e.message)+'</p>'; console.error('AI call failed:',e); }
+  const copyBtn = document.getElementById('copy-email-btn');
+  const body = getEmailBody(templateIdx, d);
+  if(!body){ toast('Template not found.'); return; }
+  out.innerHTML = '<div class="email-out" id="email-result-inner">' + body.split('\n').join('<br/>') + '</div>';
+  if(copyBtn) copyBtn.style.display='inline-flex';
+  toast('Template loaded — fill in the [ ] placeholders!');
 }
-
-// ════════════════════════════
-//  FLORIDA COMPLIANCE CHECKLIST
-// ════════════════════════════
-const COMPLIANCE_SETS = {
-  sale_general:[
-    {section:'Agreements & Authority',items:[
-      {t:'Buyer Representation Agreement signed',req:true,note:'Required by FL §475 before representing buyer in any transaction'},
-      {t:'Seller has authority to sell (entity authorization)',req:true,note:'If LLC/Corp — verify operating agreement or corporate resolution'},
-      {t:'All owners identified and consented',req:true,note:'All principals with ownership interest must sign'},
-    ]},
-    {section:'Due Diligence',items:[
-      {t:'Due diligence period set in writing',req:true,note:'Undefined DD period = buyer has no protection'},
-      {t:'3 years of tax returns reviewed',req:true,note:'IRS returns, not just P&Ls — verify income is reported'},
-      {t:'All licenses verified as current and transferable',req:true,note:'Check FL DBPR for professional licenses'},
-      {t:'Equipment / asset list verified',req:false,note:'Walk the business before closing — what\'s actually there?'},
-    ]},
-    {section:'Contracts & Documents',items:[
-      {t:'PSA executed by all parties',req:true,note:'All principals must sign — DocuSign is valid in FL'},
-      {t:'Earnest money deposited on time',req:true,note:'Track the deadline — missed deposit = contract issue'},
-      {t:'Non-compete agreement drafted',req:true,note:'FL §542.335 — protect buyer from seller competing nearby'},
-      {t:'IRS Form 8594 allocation agreed upon',req:true,note:'Both parties must file consistent 8594 with their taxes'},
-      {t:'Seller financing documents prepared (if applicable)',req:false,note:'Promissory note + UCC security agreement'},
-    ]},
-    {section:'Lease & Property',items:[
-      {t:'Lease assignment requested from landlord',req:true,note:'Start this early — some landlords take weeks to respond'},
-      {t:'Landlord consent to assignment received',req:true,note:'Cannot close without this if lease is being assigned'},
-      {t:'Lease reviewed for assignment restrictions',req:true,note:'Some leases prohibit assignment or require landlord approval'},
-      {t:'Zoning confirmed for intended use',req:false,note:'Verify with local planning/zoning department'},
-    ]},
-    {section:'Closing',items:[
-      {t:'Closing date confirmed with all parties',req:true,note:''},
-      {t:'Prorations calculated (rent, utilities, insurance)',req:true,note:'Seller responsible through day before closing'},
-      {t:'Bill of Sale prepared for personal property',req:true,note:'Transfers all tangible assets included in the sale'},
-      {t:'Closing statement reviewed and approved',req:true,note:'Review all line items before signing'},
-    ]},
-  ],
-  restaurant:[
-    {section:'DABT / Liquor License (CRITICAL — START IMMEDIATELY)',items:[
-      {t:'DABT transfer application submitted',req:true,note:'🚨 File on Day 1 — takes 30-90+ days. Cannot close without it.'},
-      {t:'DABT background check initiated for buyer',req:true,note:'Required for all license types — start immediately'},
-      {t:'Existing license verified as current and in good standing',req:true,note:'Check FL DABT portal — any violations = red flag'},
-      {t:'License type confirmed (SRX, SRS, COP, etc.)',req:true,note:'Different license types have different transfer requirements'},
-    ]},
-    {section:'Health & Food Service',items:[
-      {t:'County health department notified of ownership change',req:true,note:'Required in all FL counties — new owner needs new license'},
-      {t:'Food service license transfer initiated',req:true,note:'Separate from DABT — county-level process'},
-      {t:'Health inspection completed / reviewed',req:false,note:'Review last 3 inspections — buyer should conduct their own'},
-    ]},
-    {section:'Standard Business Sale (all items above apply)',items:[
-      {t:'Buyer Rep Agreement signed',req:true,note:'FL §475 requirement'},
-      {t:'3 years tax returns reviewed',req:true,note:''},
-      {t:'Equipment / kitchen assets list verified',req:true,note:'Walk the kitchen — verify all equipment is operational'},
-      {t:'Lease assignment approved by landlord',req:true,note:''},
-      {t:'Non-compete agreement drafted',req:true,note:''},
-      {t:'IRS Form 8594 agreed',req:true,note:''},
-    ]},
-  ],
-  franchise:[
-    {section:'Franchisor Process (CRITICAL — START IMMEDIATELY)',items:[
-      {t:'Franchise transfer application submitted to franchisor',req:true,note:'🚨 Start FIRST — can take 60-90 days. No PSA without franchisor approval.'},
-      {t:'Buyer background / financial check by franchisor',req:true,note:'Franchisor will vet the buyer independently'},
-      {t:'FDD (Franchise Disclosure Document) provided to buyer',req:true,note:'FTC requires 14-day review period before buyer signs anything'},
-      {t:'14-day FDD review period honored',req:true,note:'Do NOT let buyer sign PSA until 14 days after receiving FDD'},
-      {t:'Franchisor training scheduled / completed',req:true,note:'Most franchisors require completion before transfer approval'},
-      {t:'Transfer fee paid to franchisor',req:true,note:'Confirm amount — can range from $5K to $50K+'},
-      {t:'Written franchisor approval received',req:true,note:'Must be in writing before closing'},
-    ]},
-    {section:'Standard Business Sale (all items above apply)',items:[
-      {t:'Buyer Rep Agreement signed',req:true,note:'FL §475 requirement'},
-      {t:'PSA executed by all parties',req:true,note:''},
-      {t:'Non-compete agreement drafted',req:true,note:''},
-      {t:'Lease assignment approved',req:true,note:''},
-      {t:'IRS Form 8594 agreed',req:true,note:''},
-    ]},
-  ],
-  lease:[
-    {section:'Before Negotiations',items:[
-      {t:'Tenant Representation Agreement signed',req:true,note:'🚨 Required by FL §475 — protects your commission before you negotiate anything'},
-      {t:'Tenant entity / credit verified',req:false,note:'Landlord will require this — better to know upfront'},
-      {t:'Intended use confirmed as permitted by zoning',req:false,note:'Verify with local zoning before committing to a space'},
-    ]},
-    {section:'Letter of Intent & Lease',items:[
-      {t:'LOI submitted and accepted',req:false,note:'Recommended — locks in terms before formal lease drafting'},
-      {t:'Lease reviewed by tenant\'s attorney',req:false,note:'Strongly recommended for any lease over 3 years or $100K'},
-      {t:'Lease executed by all parties',req:true,note:''},
-      {t:'Personal guarantee executed (if required)',req:false,note:'Almost always required for new tenants without track record'},
-      {t:'Security deposit delivered',req:true,note:'Per FL §83.49 — landlord must acknowledge receipt'},
-    ]},
-    {section:'Before Occupancy',items:[
-      {t:'Certificate of Insurance (COI) delivered to landlord',req:true,note:'COI must show landlord as additional insured — required before occupancy'},
-      {t:'TI / landlord\'s work completed (if applicable)',req:false,note:'Verify all agreed-upon improvements are done before taking possession'},
-      {t:'Commencement date confirmed in writing',req:false,note:'Important for rent start date — get it in writing'},
-      {t:'Building permits / CO obtained for tenant improvements',req:false,note:'Required for any structural or significant improvements'},
-      {t:'Keys, access codes, parking passes received',req:true,note:''},
-    ]},
-  ],
-};
-
-let compStatus = {};
 
 function getCompSet(d){
   if(!d) return [];
@@ -2362,8 +2251,33 @@ function resetCompliance(){
 }
 
 
+
+function draftCustomEmail(){
+  const custom = (document.getElementById('email-custom').value||'').trim().toLowerCase();
+  if(!custom){ alert('Describe what you need first.'); return; }
+  const d = deals.find(x=>x.id===activeDealId);
+  const matches = [
+    { keys:['intro','introduc','prospect','new client','reach out','cold'], idx:0 },
+    { keys:['follow','after show','checking in','check in','no response'], idx:1 },
+    { keys:['counter','counter offer','respond to offer','reject offer'], idx:2 },
+    { keys:['loi','letter of intent','send loi','transmit loi'], idx:3 },
+    { keys:['due diligence','request doc','financials','need doc'], idx:4 },
+    { keys:['closing','checklist','pre-clos','close date'], idx:5 },
+    { keys:['commission','invoice','payment','my fee','broker fee'], idx:6 },
+    { keys:['referral','thank you','thank a'], idx:7 },
+    { keys:['price','reduction','lower price','price drop','adjust price'], idx:8 },
+    { keys:['lease','renewal','renew','extend lease'], idx:9 },
+  ];
+  const match = matches.find(m=>m.keys.some(k=>custom.includes(k)));
+  if(match){
+    draftEmail(match.idx);
+  } else {
+    draftEmail(0);
+    toast('Loaded Introduction template — fill in the [ ] placeholders!');
+  }
+}
+
 // ── INIT
-// API key stored in localStorage — user prompted on first AI use
 initSidebar();
 const hadData = loadState();
 if(hadData && activeDealId){
@@ -2383,6 +2297,89 @@ if(hadData && activeDealId){
 }
 renderClauses(); renderSelTags(); renderEmailTemplates(); refreshAll(); updateStats();
 if(hadData && deals.length) toast('Welcome back — ' + deals.filter(d=>d.status!=='archived').length + ' deals loaded.');
+function buildLOI(){
+  const addr   = document.getElementById('loi-addr').value.trim()   || '[PROPERTY ADDRESS]';
+  const buyer  = document.getElementById('loi-buyer').value.trim()  || '[BUYER / TENANT NAME]';
+  const seller = document.getElementById('loi-seller').value.trim() || '[SELLER / LANDLORD NAME]';
+  const price  = document.getElementById('loi-price').value.trim()  || '[PRICE / RENT]';
+  const trans  = document.getElementById('loi-trans').value;
+  const term   = document.getElementById('loi-term').value.trim()   || '[TERM / CLOSING TIMELINE]';
+  const sqft   = document.getElementById('loi-sqft').value.trim();
+  const notes  = document.getElementById('loi-notes').value.trim();
+  const ptype  = document.getElementById('loi-ptype').value;
+  const out    = document.getElementById('loi-out');
+  const today  = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const isLease = trans==='lease';
+  const clauseList = CLAUSES.filter(c=>selectedClauses.has(c.id));
+  const bar = '\u2501'.repeat(42);
+  let t='';
+  t+=today+'\n\nRE: LETTER OF INTENT \u2014 '+(isLease?'LEASE':'PURCHASE')+'\n';
+  t+='Property / Business: '+addr+'\n';
+  if(sqft) t+='Size: '+sqft+' SF\n';
+  t+='\nDear '+seller+',\n\n';
+  t+='This Letter of Intent (\u201cLOI\u201d) is submitted by '+buyer+' (\u201c'+(isLease?'Tenant':'Buyer')+'\u201d) ';
+  t+='regarding the '+(isLease?'lease':'purchase')+' of the above-referenced '+ptype+' located at '+addr+'. ';
+  t+='This LOI is non-binding and subject to execution of a formal '+(isLease?'Lease Agreement':'Purchase and Sale Agreement')+'.\n\n';
+  t+=(isLease?'PROPOSED LEASE TERMS':'PROPOSED PURCHASE TERMS')+'\n'+bar+'\n';
+  if(isLease){
+    t+='Tenant:            '+buyer+'\nLandlord:          '+seller+'\n';
+    t+='Premises:          '+addr+(sqft?' ('+sqft+' SF)':'')+'\nBase Rent:         '+price+'\n';
+    t+='Lease Term:        '+term+'\nLease Type:        Triple Net (NNN)\n';
+    t+='Permitted Use:     '+ptype+'\nPossession:        Upon full execution\n';
+    t+='Security Deposit:  [AMOUNT \u2014 typically 1\u20132 months rent]\n';
+    t+='Renewal Options:   [NUMBER] option(s) to renew for [YEARS] year(s)\n';
+    t+='Tenant Allowance:  [AMOUNT or N/A]\n';
+  } else {
+    t+='Buyer:             '+buyer+'\nSeller:            '+seller+'\n';
+    t+='Property / Biz:    '+addr+(sqft?' ('+sqft+' SF)':'')+'\nPurchase Price:    '+price+'\n';
+    t+='Closing Date:      '+term+'\nProperty Type:     '+ptype+'\n';
+    t+='Financing:         [CASH / SBA LOAN / CONVENTIONAL]\n';
+    t+='Earnest Money:     [AMOUNT] due within [DAYS] days of execution\n';
+    t+='Due Diligence:     [NUMBER] business days from execution\n';
+    t+='Inventory:         [INCLUDED / EXCLUDED / SEE SCHEDULE]\n';
+    t+="FF&E:              [INCLUDED / EXCLUDED / SEE SCHEDULE]\n";
+  }
+  if(clauseList.length){
+    t+='\nCONTINGENCIES AND SPECIAL TERMS\n'+bar+'\n';
+    clauseList.forEach((c,i)=>{ t+=(i+1)+'. '+c.name+':\n'+c.text.substring(0,250)+(c.text.length>250?'...':'')+'\n\n'; });
+  }
+  if(notes){ t+='\nADDITIONAL TERMS\n'+bar+'\n'+notes+'\n'; }
+  t+='\nFLORIDA DISCLOSURES\n'+bar+'\n';
+  t+='This LOI is governed by the laws of the State of Florida. ';
+  t+='Broker represents [BUYER / SELLER / BOTH] pursuant to FL \u00a7475. ';
+  t+='This LOI is non-binding; a formal agreement by legal counsel shall supersede it.\n\n';
+  t+='EXPIRATION\n'+bar+'\n';
+  t+='This LOI expires if not acknowledged within three (3) business days.\n\n';
+  t+='Respectfully submitted,\n\n\n'+buyer+'\nSignature: _______________________  Date: ______________\n\n';
+  t+='Acknowledged by:\n\n\n'+seller+'\nSignature: _______________________  Date: ______________\n';
+  const actions='<div class="btn-group" style="margin-top:10px;">'
+    +'<button class="btn btn-sm btn-out" onclick="copyEl(\'loi-text\')">Copy LOI</button>'
+    +'<button class="btn btn-sm btn-teal" onclick="window.print()">Print / Save PDF</button>'
+    +'</div>';
+  out.innerHTML='<div class="obox" id="loi-text">'+t+'</div>'+actions;
+  const lcb=document.getElementById('loi-copy-btn'); if(lcb) lcb.style.display='inline-flex';
+  const d2=deals.find(x=>x.id===activeDealId);
+  if(d2){ d2.loiAddr=addr;d2.loiBuyer=buyer;d2.loiSeller=seller;d2.loiPrice=price;
+    d2.loiTerm=term; d2.loiSqft=sqft; d2.loiNotes=notes; d2.loiDone=true; saveState(); }
+  const sl=document.getElementById('stat-loi'); if(sl) sl.textContent='Generated';
+  toast('LOI generated!');
+}
+
+function toggleSidebar(){
+  const sb = document.getElementById('sb');
+  const main = document.getElementById('main');
+  sb.classList.toggle('collapsed');
+  main.classList.toggle('expanded');
+  localStorage.setItem('sb_collapsed', sb.classList.contains('collapsed'));
+}
+
+function initSidebar(){
+  if(localStorage.getItem('sb_collapsed')==='true'){
+    document.getElementById('sb').classList.add('collapsed');
+    document.getElementById('main').classList.add('expanded');
+  }
+}
+
 
 </script>
 </body>
