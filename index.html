@@ -1181,7 +1181,26 @@ function clearAllData(){
 // ▼▼▼ PASTE YOUR RENDER URL HERE ▼▼▼
 // Go to Render → your service → copy the URL → paste below replacing the placeholder
 // Example: 'https://dealdesk-proxy-xxxx.onrender.com/api/chat'
-const PROXY_URL = 'https://dealdesk-proxy.onrender.com';
+const PROXY_URL = 'https://dealdesk-proxy.onrender.com/api/chat';
+
+// Call testProxy() in the browser console (F12) to debug connection issues
+async function testProxy(){
+  console.log('Testing proxy at:', PROXY_URL);
+  try {
+    const r = await fetch(PROXY_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:10,messages:[{role:'user',content:'Say OK'}]})
+    });
+    const d = await r.json();
+    console.log('Proxy response:', d);
+    if(d.content) toast('✅ Proxy working!');
+    else toast('⚠️ Proxy error: ' + JSON.stringify(d));
+  } catch(e) {
+    console.error('Proxy test failed:', e);
+    toast('❌ ' + e.message);
+  }
+}
 // ▲▲▲ RENDER URL ▲▲▲
 
 // ════════════════════════════
@@ -1674,7 +1693,7 @@ async function genClauses(){
     const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:`You are a Florida CRE and BBF business broker assistant. Format these clauses into a numbered TERMS AND CONTINGENCIES section. Keep all [PLACEHOLDERS]. After each heading add a brief note about what to fill in. Florida law governs.\n\n${list}`}]})});
     const d=await r.json(); const text=d.content?.map(b=>b.text||'').join('')||'Error.';
     out.innerHTML=`<div class="obox" id="clause-text">${text}</div><div class="btn-group"><button class="btn btn-xs btn-out" onclick="copyEl('clause-text')">Copy</button><button class="btn btn-xs btn-teal" onclick="goPanel('loi',event)">Use in LOI →</button></div>`;
-  }catch(e){ out.innerHTML='<p style="font-size:12px;color:var(--plum);margin-top:8px;">⚠️ AI unavailable — proxy server not reachable. Check that your Render service is deployed and running.</p>'; console.error('Proxy error:',e); }
+  }catch(e){ out.innerHTML='<p style="font-size:12px;color:var(--plum);margin-top:8px;">⚠️ Error: '+e.message+'</p>'; console.error('AI call failed:',e); }
 }
 
 // ════════════════════════════
@@ -1704,7 +1723,7 @@ async function buildLOI(){
     out.innerHTML='<div class="obox" id="loi-text">'+text+'</div>'+'<div class="btn-group"><button class="btn btn-sm btn-out" onclick="copyEl('+"'loi-text'"+')">Copy LOI</button><button class="btn btn-sm btn-teal" onclick="printLOI()">Print / Save PDF</button></div>';
     const lcb=document.getElementById('loi-copy-btn'); if(lcb) lcb.style.display='inline-flex';
     document.getElementById('stat-loi').textContent='Generated'; toast('LOI generated!');
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;margin-top:8px;">⚠️ AI unavailable — proxy server not reachable. Check Render deployment.</p>'; document.getElementById('stat-loi').textContent='Error'; console.error('Proxy error:',e); }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;margin-top:8px;">⚠️ Error: '+e.message+'</p>'; document.getElementById('stat-loi').textContent='Error'; console.error('AI call failed:',e); }
 }
 function printLOI(){
   const text=document.getElementById('loi-text')?.innerText||'';
@@ -1734,7 +1753,7 @@ async function explainClause(){
     const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,messages:[{role:'user',content:`You are a plain-English translator for Florida CRE and BBF contracts. Explain in 3 parts (under 180 words total):\n\n1. WHAT IT MEANS — plain English, like talking to a smart non-lawyer\n2. WHY IT MATTERS — who it protects and why it exists\n3. WATCH OUT FOR — what the broker or client should be careful about\n\nClause:\n${clause}`}]})});
     const d=await r.json(); const text=d.content?.map(b=>b.text||'').join('')||'Error.';
     out.innerHTML=`<div style="font-size:13px;line-height:1.8;color:var(--g800);">${text.split('\n').join('<br/>')}</div>`;
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ AI unavailable — proxy not reachable. Check Render deployment.</p>'; }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ Error: '+e.message+'</p>'; console.error('AI call failed:',e); }
 }
 
 // ════════════════════════════
@@ -2185,7 +2204,7 @@ async function doEmailDraft(prompt){
     out.innerHTML='<div class="email-out" id="email-result-inner">'+text.split('\n').join('<br/>')+'</div>';
     document.getElementById('copy-email-btn').style.display='inline-flex';
     document.getElementById('copy-email-btn').style.display='inline-flex';
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ AI unavailable — proxy not reachable. Check Render deployment.</p>'; }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ Error: '+e.message+'</p>'; console.error('AI call failed:',e); }
 }
 
 // ════════════════════════════
