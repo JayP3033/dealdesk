@@ -24,8 +24,8 @@
   --trans:.2s cubic-bezier(.4,0,.2,1);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;overflow:hidden;}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--g800);font-size:14px;}
+html{height:100%;}
+body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--g800);font-size:14px;overflow:hidden;}
 
 /* ── SCROLLBAR ───────────────────────────────── */
 ::-webkit-scrollbar{width:5px;height:5px;}
@@ -1178,9 +1178,11 @@ function clearAllData(){
 // ════════════════════════════
 //  CONFIG
 // ════════════════════════════
-// Point this at your Render proxy URL once deployed.
-// During local dev, it falls back to direct browser access.
+// ▼▼▼ PASTE YOUR RENDER URL HERE ▼▼▼
+// Go to Render → your service → copy the URL → paste below replacing the placeholder
+// Example: 'https://dealdesk-proxy-xxxx.onrender.com/api/chat'
 const PROXY_URL = 'https://dealdesk-proxy.onrender.com/api/chat';
+// ▲▲▲ RENDER URL ▲▲▲
 
 // ════════════════════════════
 //  STATE
@@ -1672,7 +1674,7 @@ async function genClauses(){
     const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:`You are a Florida CRE and BBF business broker assistant. Format these clauses into a numbered TERMS AND CONTINGENCIES section. Keep all [PLACEHOLDERS]. After each heading add a brief note about what to fill in. Florida law governs.\n\n${list}`}]})});
     const d=await r.json(); const text=d.content?.map(b=>b.text||'').join('')||'Error.';
     out.innerHTML=`<div class="obox" id="clause-text">${text}</div><div class="btn-group"><button class="btn btn-xs btn-out" onclick="copyEl('clause-text')">Copy</button><button class="btn btn-xs btn-teal" onclick="goPanel('loi',event)">Use in LOI →</button></div>`;
-  }catch(e){ out.innerHTML='<p style="font-size:12px;color:var(--plum);margin-top:8px;">Connection error — try again.</p>'; }
+  }catch(e){ out.innerHTML='<p style="font-size:12px;color:var(--plum);margin-top:8px;">⚠️ AI unavailable — proxy server not reachable. Check that your Render service is deployed and running.</p>'; console.error('Proxy error:',e); }
 }
 
 // ════════════════════════════
@@ -1702,7 +1704,7 @@ async function buildLOI(){
     out.innerHTML='<div class="obox" id="loi-text">'+text+'</div>'+'<div class="btn-group"><button class="btn btn-sm btn-out" onclick="copyEl('+"'loi-text'"+')">Copy LOI</button><button class="btn btn-sm btn-teal" onclick="printLOI()">Print / Save PDF</button></div>';
     const lcb=document.getElementById('loi-copy-btn'); if(lcb) lcb.style.display='inline-flex';
     document.getElementById('stat-loi').textContent='Generated'; toast('LOI generated!');
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;margin-top:8px;">Connection error — try again.</p>'; document.getElementById('stat-loi').textContent='Error'; }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;margin-top:8px;">⚠️ AI unavailable — proxy server not reachable. Check Render deployment.</p>'; document.getElementById('stat-loi').textContent='Error'; console.error('Proxy error:',e); }
 }
 function printLOI(){
   const text=document.getElementById('loi-text')?.innerText||'';
@@ -1732,7 +1734,7 @@ async function explainClause(){
     const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,messages:[{role:'user',content:`You are a plain-English translator for Florida CRE and BBF contracts. Explain in 3 parts (under 180 words total):\n\n1. WHAT IT MEANS — plain English, like talking to a smart non-lawyer\n2. WHY IT MATTERS — who it protects and why it exists\n3. WATCH OUT FOR — what the broker or client should be careful about\n\nClause:\n${clause}`}]})});
     const d=await r.json(); const text=d.content?.map(b=>b.text||'').join('')||'Error.';
     out.innerHTML=`<div style="font-size:13px;line-height:1.8;color:var(--g800);">${text.split('\n').join('<br/>')}</div>`;
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">Connection error — try again.</p>'; }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ AI unavailable — proxy not reachable. Check Render deployment.</p>'; }
 }
 
 // ════════════════════════════
@@ -1830,7 +1832,7 @@ document.getElementById('cheat-list').innerHTML=TERMS.map(([k,v])=>`<div class="
 //  STATS & UTILS
 // ════════════════════════════
 function updateStats(){ document.getElementById('stat-cls').textContent=selectedClauses.size; }
-function copyEl(id){ const el=document.getElementById(id); if(!el) return; navigator.clipboard.writeText(el.innerText||el.value||'').then(()=>toast('Copied!')).catch(()=>toast('Copy failed — try manually.')); }
+function copyEl(id){ const el=document.getElementById(id); if(!el) return; navigator.clipboard.writeText(el.innerText||el.value||'').then(()=>toast('Copied!')).catch(err=>toast('Copy failed — try manually.')); }
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2700); }
 
 // ════════════════════════════
@@ -2183,7 +2185,7 @@ async function doEmailDraft(prompt){
     out.innerHTML='<div class="email-out" id="email-result-inner">'+text.split('\n').join('<br/>')+'</div>';
     document.getElementById('copy-email-btn').style.display='inline-flex';
     document.getElementById('copy-email-btn').style.display='inline-flex';
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">Connection error — try again.</p>'; }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ AI unavailable — proxy not reachable. Check Render deployment.</p>'; }
 }
 
 // ════════════════════════════
@@ -2345,6 +2347,11 @@ function resetCompliance(){
 
 
 // ── INIT
+// Check proxy on load
+fetch(PROXY_URL.replace('/api/chat',''))
+  .then(r=>r.json())
+  .then(d=>{ if(d.status) console.log('✅ DealDesk proxy online'); })
+  .catch(()=>{ console.warn('⚠️ Proxy not reachable — AI features will not work until Render is deployed.'); });
 initSidebar();
 const hadData = loadState();
 if(hadData && activeDealId){
