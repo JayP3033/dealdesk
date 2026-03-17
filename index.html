@@ -3,337 +3,587 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>DealDesk · Florida CRE Command Center</title>
+<title>DealDesk · Florida CRE</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
+/* ── TOKENS ─────────────────────────────────── */
 :root{
-  --teal:rgb(0,75,69);--teal-light:rgb(0,105,97);--teal-dark:rgb(0,52,48);
-  --teal-pale:rgba(0,75,69,0.07);--teal-pale2:rgba(0,75,69,0.13);
-  --plum:rgb(103,0,56);--plum-light:rgb(135,0,73);
-  --plum-pale:rgba(103,0,56,0.07);--plum-pale2:rgba(103,0,56,0.13);
-  --gold:#c9a84c;--white:#fff;--off-white:#f5f7f6;
+  --teal:rgb(0,75,69);--teal-l:rgb(0,105,97);--teal-d:rgb(0,52,48);
+  --teal-p:rgba(0,75,69,.07);--teal-p2:rgba(0,75,69,.13);
+  --plum:rgb(103,0,56);--plum-l:rgb(135,0,73);
+  --plum-p:rgba(103,0,56,.07);--plum-p2:rgba(103,0,56,.13);
+  --gold:#c9a84c;--gold-p:rgba(201,168,76,.14);
+  --white:#fff;--bg:#f4f6f5;
   --g50:#f0f2f1;--g100:#e4e8e7;--g200:#cdd4d3;--g400:#8fa09e;--g600:#4a5c5a;--g800:#1e2e2c;
-  --shadow-sm:0 1px 4px rgba(0,52,48,.10);--shadow-md:0 4px 16px rgba(0,52,48,.13);--shadow-lg:0 8px 32px rgba(0,52,48,.18);
+  --sh1:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+  --sh2:0 4px 16px rgba(0,52,48,.10);
+  --sh3:0 8px 32px rgba(0,52,48,.16);
   --r:8px;--rl:12px;--rxl:16px;
+  --sb:240px;--sb-col:58px;
+  --top:52px;
+  --trans:.2s cubic-bezier(.4,0,.2,1);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800);min-height:100vh;font-size:14px;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--g800);font-size:14px;}
 
-/* SIDEBAR */
-#sb{position:fixed;left:0;top:0;bottom:0;width:232px;background:var(--teal-dark);display:flex;flex-direction:column;z-index:100;overflow-y:auto;}
-#sb::-webkit-scrollbar{width:3px;}#sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px;}
-.sb-logo{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.07);}
-.sb-logo-row{display:flex;align-items:center;gap:10px;}
-.sb-logo-name{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:#fff;line-height:1.1;}
-.sb-logo-sub{font-size:9px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:2px;}
-.sb-tag{padding:7px 16px;font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.05);}
+/* ── SCROLLBAR ───────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:var(--g200);border-radius:5px;}
+::-webkit-scrollbar-track{background:transparent;}
 
-/* DEAL SWITCHER */
-.ds-wrap{padding:9px 14px 8px;border-bottom:1px solid rgba(255,255,255,.06);}
+/* ── SIDEBAR ─────────────────────────────────── */
+#sb{
+  position:fixed;left:0;top:0;bottom:0;
+  width:var(--sb);
+  background:var(--teal-d);
+  display:flex;flex-direction:column;
+  z-index:200;
+  transition:width var(--trans);
+  overflow:hidden;
+}
+#sb.collapsed{width:var(--sb-col);}
+#sb-inner{width:100%;flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+#sb-inner::-webkit-scrollbar{width:3px;}
+#sb-inner::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);}
+
+/* Logo row */
+.sb-logo{
+  padding:14px 14px 12px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.sb-logo-link{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none;min-width:0;}
+.sb-logo-link:hover .sb-logo-name{color:rgba(255,255,255,.85);}
+.sb-logo-mark{flex-shrink:0;}
+.sb-logo-text{min-width:0;overflow:hidden;}
+.sb-logo-name{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;line-height:1.1;white-space:nowrap;transition:opacity var(--trans);}
+.sb-logo-sub{font-size:9px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-top:2px;white-space:nowrap;transition:opacity var(--trans);}
+#sb.collapsed .sb-logo-text{display:none;}
+
+/* Collapse toggle */
+.sb-toggle{
+  width:26px;height:26px;border-radius:6px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+  color:rgba(255,255,255,.45);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;
+}
+.sb-toggle:hover{background:rgba(255,255,255,.13);color:#fff;}
+.sb-toggle svg{transition:transform var(--trans);}
+#sb.collapsed .sb-logo{justify-content:center;padding:10px 0;}
+#sb.collapsed .sb-logo-link{display:none;}
+#sb.collapsed .sb-toggle svg{transform:rotate(0deg);}
+
+/* Deal switcher */
+.ds-wrap{
+  padding:10px 12px 8px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  flex-shrink:0;
+  transition:opacity var(--trans);
+}
+#sb.collapsed .ds-wrap{display:none;}
 .ds-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-.ds-lbl{font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;font-weight:600;}
-.ds-new{font-size:10px;padding:2px 8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;color:rgba(255,255,255,.6);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.ds-lbl{font-size:9px;color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.1em;font-weight:600;}
+.ds-new{font-size:10px;padding:2px 9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;color:rgba(255,255,255,.6);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
 .ds-new:hover{background:rgba(255,255,255,.16);color:#fff;}
-.dp{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;margin-bottom:2px;transition:all .15s;border:1px solid transparent;position:relative;}
+.dp{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;cursor:pointer;margin-bottom:2px;transition:all .15s;border:1px solid transparent;}
 .dp:hover{background:rgba(255,255,255,.06);}
-.dp.adp{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.14);}
+.dp.adp{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.13);}
 .dp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .dot-active{background:#4ade80;}
 .dot-draft{background:var(--gold);}
-.dot-archived{background:rgba(255,255,255,.25);}
-.dp-name{font-size:12px;color:rgba(255,255,255,.7);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
+.dot-archived{background:rgba(255,255,255,.22);}
+.dp-name{font-size:12px;color:rgba(255,255,255,.68);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dp.adp .dp-name{color:#fff;font-weight:500;}
 .dp-acts{display:none;gap:2px;flex-shrink:0;}
 .dp:hover .dp-acts{display:flex;}
-.dp-act{font-size:9px;padding:1px 5px;border-radius:3px;border:none;cursor:pointer;font-family:'Inter',sans-serif;background:rgba(255,255,255,.12);color:rgba(255,255,255,.55);transition:all .12s;line-height:1.6;}
-.dp-act:hover{background:rgba(255,255,255,.22);color:#fff;}
+.dp-act{font-size:9px;padding:1px 5px;border-radius:3px;border:none;cursor:pointer;font-family:'Inter',sans-serif;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);transition:all .12s;line-height:1.6;}
+.dp-act:hover{background:rgba(255,255,255,.2);color:#fff;}
 .dp-act.del:hover{background:rgba(200,50,50,.4);color:#fca5a5;}
-.dp-empty{font-size:11px;color:rgba(255,255,255,.22);padding:4px 2px;font-style:italic;}
+.dp-empty{font-size:11px;color:rgba(255,255,255,.2);padding:4px 2px;font-style:italic;}
 
-/* NAV */
-.nav-sec{padding:7px 0 2px;}
-.nav-lbl{font-size:9px;color:rgba(255,255,255,.27);letter-spacing:.12em;text-transform:uppercase;padding:0 16px 4px;}
-.nav-a{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:rgba(255,255,255,.52);font-size:12.5px;transition:all .15s;border-left:3px solid transparent;text-decoration:none;}
-.nav-a:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.9);}
-.nav-a.act{background:rgba(255,255,255,.08);color:#fff;border-left-color:rgba(255,255,255,.5);}
-.ni{width:14px;height:14px;flex-shrink:0;opacity:.6;}
-.nav-a.act .ni{opacity:1;}
-.sb-foot{margin-top:auto;padding:11px 16px;border-top:1px solid rgba(255,255,255,.05);}
-.sb-foot p{font-size:10px;color:rgba(255,255,255,.2);line-height:1.7;}
-.sb-foot span{color:rgba(255,255,255,.38);}
+/* Nav sections */
+.sb-tag{
+  padding:8px 14px 4px;
+  font-size:9px;color:rgba(255,255,255,.22);
+  letter-spacing:.1em;text-transform:uppercase;
+  transition:opacity var(--trans);
+  white-space:nowrap;
+}
+#sb.collapsed .sb-tag{display:none;}
+.nav-sec{padding:4px 0 2px;}
+.nav-a{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 14px;cursor:pointer;
+  color:rgba(255,255,255,.5);font-size:12.5px;
+  transition:all .15s;border-left:3px solid transparent;
+  text-decoration:none;white-space:nowrap;
+  position:relative;
+}
+.nav-a:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.88);}
+.nav-a.act{background:rgba(255,255,255,.08);color:#fff;border-left-color:rgba(255,255,255,.45);}
+.nav-a .nav-label{transition:opacity var(--trans);}
+#sb.collapsed .nav-a .nav-label{display:none;}
+#sb.collapsed .nav-a{justify-content:center;padding:10px 0;border-left-color:transparent;}
+#sb.collapsed .nav-a.act{background:rgba(255,255,255,.1);}
+#sb.collapsed .nav-a:hover::after{
+  content:attr(data-tip);
+  position:absolute;left:calc(var(--sb-col) + 8px);top:50%;transform:translateY(-50%);
+  background:var(--teal-d);color:#fff;
+  font-size:12px;padding:5px 10px;border-radius:6px;
+  white-space:nowrap;pointer-events:none;z-index:500;
+  box-shadow:var(--sh2);border:1px solid rgba(255,255,255,.08);
+}
+.ni{width:15px;height:15px;flex-shrink:0;opacity:.6;}
+.nav-a.act .ni,.nav-a:hover .ni{opacity:1;}
+.sb-foot{
+  padding:10px 14px;border-top:1px solid rgba(255,255,255,.05);
+  flex-shrink:0;transition:opacity var(--trans);
+}
+.sb-foot p{font-size:10px;color:rgba(255,255,255,.18);line-height:1.7;}
+.sb-foot span{color:rgba(255,255,255,.32);}
+#sb.collapsed .sb-foot{display:none;}
 
-/* MAIN */
-#main{margin-left:232px;min-height:100vh;display:flex;flex-direction:column;}
-.topbar{background:var(--white);border-bottom:1px solid var(--g100);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:var(--shadow-sm);}
-.topbar-title{font-size:15px;font-weight:600;color:var(--teal-dark);}
-.tb-right{display:flex;align-items:center;gap:9px;}
-#deal-chip{font-size:11px;padding:3px 11px;border-radius:20px;background:var(--g50);color:var(--g600);font-weight:500;border:1px solid var(--g100);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-#deal-chip.on{background:var(--teal-pale2);color:var(--teal);border-color:rgba(0,75,69,.2);}
-.content{padding:22px 24px;flex:1;}
+/* ── TOPBAR ──────────────────────────────────── */
+#main{
+  position:fixed;left:var(--sb);top:0;right:0;bottom:0;
+  display:flex;flex-direction:column;
+  transition:left var(--trans);
+}
+#main.expanded{left:var(--sb-col);}
+.topbar{
+  height:var(--top);
+  background:var(--white);
+  border-bottom:1px solid var(--g100);
+  padding:0 22px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+  box-shadow:var(--sh1);
+  z-index:100;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-title{font-size:14px;font-weight:600;color:var(--teal-d);letter-spacing:-.01em;}
+.tb-right{display:flex;align-items:center;gap:8px;}
+#deal-chip{
+  font-size:11px;padding:3px 11px;border-radius:20px;
+  background:var(--g50);color:var(--g600);font-weight:500;
+  border:1px solid var(--g100);
+  max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  cursor:pointer;transition:all .15s;
+}
+#deal-chip:hover{background:var(--g100);}
+#deal-chip.on{background:var(--teal-p2);color:var(--teal);border-color:rgba(0,75,69,.2);}
+#deal-chip.on:hover{background:var(--teal-p);}
+#tb-clock{font-size:11px;color:var(--g400);font-variant-numeric:tabular-nums;min-width:60px;text-align:right;}
 
-/* PANELS */
-.panel{display:none;animation:fi .18s ease;}
-.panel.active{display:block;}
-@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.ph{margin-bottom:16px;}
-.ph h2{font-family:'Playfair Display',serif;font-size:21px;color:var(--teal-dark);font-weight:600;}
-.ph p{font-size:13px;color:var(--g600);margin-top:4px;line-height:1.5;}
+/* ── CONTENT AREA ────────────────────────────── */
+.content{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:20px 24px 32px;
+}
 
-/* CARDS */
-.card{background:var(--white);border-radius:var(--rl);border:1px solid var(--g100);padding:17px 20px;margin-bottom:13px;box-shadow:var(--shadow-sm);}
-.ct{font-size:11px;font-weight:600;color:var(--teal-dark);margin-bottom:11px;display:flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.06em;}
+/* ── QUICK BAR ───────────────────────────────── */
+.qbar{
+  display:flex;gap:5px;flex-wrap:wrap;
+  padding:8px 12px;
+  background:var(--teal-d);
+  border-radius:var(--rl);
+  margin-bottom:18px;
+  align-items:center;
+}
+.qbar-lbl{font-size:9px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.09em;flex-shrink:0;}
+.qbtn{
+  padding:3px 10px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:20px;font-size:11px;
+  color:rgba(255,255,255,.55);
+  cursor:pointer;transition:all .14s;
+  font-family:'Inter',sans-serif;white-space:nowrap;
+}
+.qbtn:hover{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.22);}
+.qbtn.primary{background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.18);}
+.qbtn.primary:hover{background:rgba(255,255,255,.2);color:#fff;}
+.qbar-spacer{flex:1;}
+.qbar-hint{font-size:9px;color:rgba(255,255,255,.15);flex-shrink:0;}
+
+/* ── PANELS ──────────────────────────────────── */
+.panel{display:none;}
+.panel.active{display:block;animation:panelIn .16s ease;}
+@keyframes panelIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.ph{margin-bottom:18px;}
+.ph h2{font-family:'Playfair Display',serif;font-size:22px;color:var(--teal-d);font-weight:600;line-height:1.2;}
+.ph p{font-size:13px;color:var(--g600);margin-top:5px;line-height:1.55;max-width:680px;}
+
+/* ── CARDS ───────────────────────────────────── */
+.card{
+  background:var(--white);border-radius:var(--rl);
+  border:1px solid var(--g100);
+  padding:18px 20px;margin-bottom:14px;
+  box-shadow:var(--sh1);
+}
+.ct{
+  font-size:10.5px;font-weight:600;color:var(--teal-d);
+  margin-bottom:12px;
+  display:flex;align-items:center;gap:7px;
+  text-transform:uppercase;letter-spacing:.06em;
+}
 .ct .bar{width:3px;height:12px;background:var(--plum);border-radius:2px;flex-shrink:0;}
 
-/* GRID */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;}
-@media(max-width:900px){.g3{grid-template-columns:1fr 1fr;}}
-@media(max-width:600px){.g2,.g3{grid-template-columns:1fr;}}
+/* ── GRIDS ───────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+@media(max-width:960px){.g3{grid-template-columns:1fr 1fr;}}
+@media(max-width:700px){.g2,.g3{grid-template-columns:1fr;}}
 
-/* FORMS */
-.fg{margin-bottom:10px;}
-.fg label{display:block;font-size:11px;font-weight:600;color:var(--g600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
-.fg input,.fg select,.fg textarea{width:100%;padding:8px 10px;border:1px solid var(--g200);border-radius:var(--r);font-size:13px;font-family:'Inter',sans-serif;color:var(--g800);background:var(--white);transition:border .15s,box-shadow .15s;}
-.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,75,69,.08);}
-.fg textarea{resize:vertical;min-height:76px;}
+/* ── FORMS ───────────────────────────────────── */
+.fg{margin-bottom:11px;}
+.fg label{display:block;font-size:10.5px;font-weight:600;color:var(--g600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.fg input,.fg select,.fg textarea{
+  width:100%;padding:8px 11px;
+  border:1.5px solid var(--g200);border-radius:var(--r);
+  font-size:13px;font-family:'Inter',sans-serif;
+  color:var(--g800);background:var(--white);
+  transition:border-color .15s,box-shadow .15s;
+  -webkit-appearance:none;
+}
+.fg input:focus,.fg select:focus,.fg textarea:focus{
+  outline:none;border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(0,75,69,.09);
+}
+.fg input::placeholder,.fg textarea::placeholder{color:var(--g400);}
+.fg textarea{resize:vertical;min-height:78px;line-height:1.6;}
 
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;font-size:13px;font-weight:500;border-radius:var(--r);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;border:1px solid transparent;}
-.btn-teal{background:var(--teal);color:#fff;}
-.btn-teal:hover{background:var(--teal-light);}
-.btn-plum{background:var(--plum);color:#fff;}
-.btn-plum:hover{background:var(--plum-light);}
-.btn-out{background:transparent;color:var(--teal-dark);border-color:var(--g200);}
+/* ── BUTTONS ─────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:8px 15px;font-size:13px;font-weight:500;
+  border-radius:var(--r);cursor:pointer;
+  transition:all .15s;font-family:'Inter',sans-serif;
+  border:1.5px solid transparent;line-height:1;
+  white-space:nowrap;
+}
+.btn-teal{background:var(--teal);color:#fff;border-color:var(--teal);}
+.btn-teal:hover{background:var(--teal-l);border-color:var(--teal-l);}
+.btn-plum{background:var(--plum);color:#fff;border-color:var(--plum);}
+.btn-plum:hover{background:var(--plum-l);border-color:var(--plum-l);}
+.btn-out{background:transparent;color:var(--teal-d);border-color:var(--g200);}
 .btn-out:hover{background:var(--g50);border-color:var(--g400);}
 .btn-danger{background:transparent;color:#9b1c1c;border-color:#fca5a5;}
-.btn-danger:hover{background:#fdeaea;}
-.btn-sm{padding:5px 11px;font-size:12px;}
+.btn-danger:hover{background:#fef2f2;border-color:#f87171;}
+.btn-sm{padding:5px 12px;font-size:12px;}
 .btn-xs{padding:3px 9px;font-size:11px;}
-.btn-group{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+.btn-group{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
 
-/* STAT GRID */
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
-@media(max-width:800px){.stat-grid{grid-template-columns:1fr 1fr;}}
-.sc{background:var(--white);border-radius:var(--rl);padding:13px 16px;border:1px solid var(--g100);box-shadow:var(--shadow-sm);}
-.sc .sl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);margin-bottom:4px;}
-.sc .sv{font-size:20px;font-weight:600;color:var(--teal-dark);font-family:'Playfair Display',serif;}
-.sc .ss{font-size:11px;color:var(--g400);margin-top:2px;}
+/* ── STAT CARDS ──────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px;}
+@media(max-width:860px){.stat-grid{grid-template-columns:1fr 1fr;}}
+.sc{background:var(--white);border-radius:var(--rl);padding:14px 17px;border:1px solid var(--g100);box-shadow:var(--sh1);}
+.sc .sl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);margin-bottom:5px;}
+.sc .sv{font-size:20px;font-weight:600;color:var(--teal-d);font-family:'Playfair Display',serif;}
+.sc .ss{font-size:11px;color:var(--g400);margin-top:3px;}
 .sc.al{border-left:3px solid var(--teal);}
 .sc.ar{border-left:3px solid var(--plum);}
 .sc.ag{border-left:3px solid var(--gold);}
-.sc.an{border-left:3px solid var(--teal-light);}
+.sc.an{border-left:3px solid var(--teal-l);}
 
-/* PILLS */
-.pill{display:inline-flex;align-items:center;font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;line-height:1.6;}
-.p-teal{background:var(--teal-pale2);color:var(--teal);}
-.p-plum{background:var(--plum-pale2);color:var(--plum);}
-.p-gold{background:rgba(201,168,76,.15);color:#7a5c0a;}
+/* ── PILLS ───────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;line-height:1.5;}
+.p-teal{background:var(--teal-p2);color:var(--teal);}
+.p-plum{background:var(--plum-p2);color:var(--plum);}
+.p-gold{background:var(--gold-p);color:#7a5c0a;}
 .p-gray{background:var(--g100);color:var(--g600);}
 .p-green{background:rgba(0,140,70,.1);color:rgb(0,100,50);}
 
-/* SHORTCUT BAR */
-.scbar{display:flex;gap:5px;flex-wrap:wrap;padding:8px 13px;background:var(--teal-dark);border-radius:var(--rl);margin-bottom:14px;align-items:center;}
-.scbar-lbl{font-size:9px;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.09em;}
-.scbtn{padding:4px 10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:11px;color:rgba(255,255,255,.58);cursor:pointer;transition:all .14s;font-family:'Inter',sans-serif;}
-.scbtn:hover{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.24);}
-
-/* HERO */
-.hero{background:linear-gradient(135deg,var(--teal-dark) 0%,var(--teal) 100%);border-radius:var(--rxl);padding:22px 26px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;position:relative;overflow:hidden;}
+/* ── HERO BANNER ─────────────────────────────── */
+.hero{
+  background:linear-gradient(135deg,var(--teal-d) 0%,var(--teal) 100%);
+  border-radius:var(--rxl);padding:22px 26px;margin-bottom:18px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  position:relative;overflow:hidden;
+}
 .hero::after{content:'';position:absolute;right:-30px;top:-30px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.03);}
-.hero::before{content:'';position:absolute;right:65px;bottom:-45px;width:110px;height:110px;border-radius:50%;background:rgba(103,0,56,.15);}
-.hero h1{font-family:'Playfair Display',serif;font-size:19px;color:#fff;font-weight:600;}
-.hero p{font-size:12px;color:rgba(255,255,255,.52);margin-top:4px;line-height:1.6;}
-.hero-line{width:28px;height:3px;background:rgba(255,255,255,.32);border-radius:2px;margin-bottom:8px;}
-.hero-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;justify-content:flex-end;}
-.hero-tag{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(255,255,255,.09);color:rgba(255,255,255,.68);border:1px solid rgba(255,255,255,.1);}
+.hero::before{content:'';position:absolute;right:70px;bottom:-45px;width:110px;height:110px;border-radius:50%;background:rgba(103,0,56,.14);}
+.hero h1{font-family:'Playfair Display',serif;font-size:20px;color:#fff;font-weight:600;position:relative;z-index:1;}
+.hero p{font-size:12px;color:rgba(255,255,255,.5);margin-top:5px;line-height:1.6;position:relative;z-index:1;}
+.hero-line{width:28px;height:3px;background:rgba(255,255,255,.3);border-radius:2px;margin-bottom:9px;}
+.hero-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;justify-content:flex-end;position:relative;z-index:1;}
+.hero-tag{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(255,255,255,.09);color:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.1);}
 
-/* DEAL CARDS (tracker) */
-.deal-card{background:var(--white);border-radius:var(--rl);border:1px solid var(--g100);padding:13px 17px;margin-bottom:8px;cursor:pointer;transition:all .14s;box-shadow:var(--shadow-sm);}
-.deal-card:hover{border-color:var(--teal);box-shadow:var(--shadow-md);}
+/* ── DEAL CARDS ──────────────────────────────── */
+.deal-card{
+  background:var(--white);border-radius:var(--rl);
+  border:1px solid var(--g100);
+  padding:13px 17px;margin-bottom:9px;
+  cursor:pointer;transition:all .15s;
+  box-shadow:var(--sh1);
+}
+.deal-card:hover{border-color:rgba(0,75,69,.3);box-shadow:var(--sh2);transform:translateY(-1px);}
 .deal-card.dc-active{border-left:3px solid var(--teal);}
 .deal-card.dc-draft{border-left:3px solid var(--gold);}
-.deal-card.dc-archived{opacity:.58;border-left:3px solid var(--g200);}
-.deal-card.dc-current{border-color:var(--teal);background:var(--teal-pale);}
+.deal-card.dc-archived{opacity:.55;border-left:3px solid var(--g200);}
+.deal-card.dc-current{border-color:var(--teal);background:var(--teal-p);box-shadow:0 0 0 1px rgba(0,75,69,.15),var(--sh1);}
 .dc-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
-.dc-name{font-size:14px;font-weight:600;color:var(--teal-dark);flex:1;}
+.dc-name{font-size:14px;font-weight:600;color:var(--teal-d);flex:1;min-width:0;}
 .dc-val{font-size:13px;font-weight:500;color:var(--plum);}
-.dc-bot{display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:7px;}
-.dc-meta{font-size:11.5px;color:var(--g600);}
+.dc-bot{display:flex;align-items:center;justify-content:space-between;margin-top:9px;flex-wrap:wrap;gap:7px;}
+.dc-meta{font-size:12px;color:var(--g600);}
 .dc-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
-.dc-status{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;}
-.dcs-active{background:rgba(0,75,69,.1);color:var(--teal);}
-.dcs-draft{background:rgba(201,168,76,.15);color:#7a5c0a;}
-.dcs-archived{background:var(--g100);color:var(--g600);}
 
-/* CLAUSE LIB */
-.fbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:var(--g50);border-radius:var(--r);margin-bottom:9px;border:1px solid var(--g100);}
-.fbar select,.fbar input{padding:6px 9px;border:1px solid var(--g200);border-radius:var(--r);font-size:12px;font-family:'Inter',sans-serif;background:var(--white);color:var(--g800);}
-.fbar input{flex:1;min-width:120px;}
-.clib{max-height:400px;overflow-y:auto;padding-right:2px;}
-.clib::-webkit-scrollbar{width:3px;}
-.clib::-webkit-scrollbar-thumb{background:var(--g200);border-radius:3px;}
-.cc{border:1px solid var(--g100);border-radius:var(--r);padding:8px 12px;cursor:pointer;margin-bottom:5px;transition:all .14s;display:flex;gap:8px;align-items:flex-start;background:var(--white);}
-.cc:hover{border-color:var(--teal);background:var(--teal-pale);}
-.cc.sel{border-color:var(--plum);background:var(--plum-pale);}
+/* ── CLAUSE LIBRARY ──────────────────────────── */
+.fbar{
+  display:flex;gap:7px;flex-wrap:wrap;align-items:center;
+  padding:10px 12px;background:var(--g50);
+  border-radius:var(--r);margin-bottom:10px;
+  border:1px solid var(--g100);
+}
+.fbar select,.fbar input{
+  padding:6px 10px;border:1.5px solid var(--g200);
+  border-radius:var(--r);font-size:12px;
+  font-family:'Inter',sans-serif;background:var(--white);color:var(--g800);
+}
+.fbar input{flex:1;min-width:130px;}
+.fbar select:focus,.fbar input:focus{outline:none;border-color:var(--teal);}
+.clib{max-height:420px;overflow-y:auto;padding-right:3px;}
+.cc{
+  border:1.5px solid var(--g100);border-radius:var(--r);
+  padding:9px 12px;cursor:pointer;margin-bottom:5px;
+  transition:all .14s;display:flex;gap:9px;
+  align-items:flex-start;background:var(--white);
+}
+.cc:hover{border-color:rgba(0,75,69,.25);background:var(--teal-p);}
+.cc.sel{border-color:var(--plum);background:var(--plum-p);}
 .cc.top{border-left:3px solid var(--gold);}
 .cc.sel .cn{color:var(--plum);}
-.cchk{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--g200);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .14s;}
+.cchk{
+  width:16px;height:16px;border-radius:3px;border:1.5px solid var(--g200);
+  flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;
+  font-size:9px;transition:all .14s;
+}
 .cc.sel .cchk{background:var(--plum);border-color:var(--plum);color:#fff;}
-.cn{font-size:12.5px;font-weight:600;color:var(--teal-dark);margin-bottom:1px;}
-.cd{font-size:11px;color:var(--g600);line-height:1.4;}
-.ctag{font-size:9px;padding:1px 5px;border-radius:20px;background:rgba(201,168,76,.15);color:#7a5c0a;font-weight:500;margin-left:3px;}
-.sel-area{background:var(--g50);border-radius:var(--r);padding:9px 12px;min-height:46px;border:1px solid var(--g100);}
-.stag{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--white);border:1px solid var(--g200);border-radius:20px;padding:2px 8px;margin:2px;color:var(--teal-dark);}
-.rmtag{cursor:pointer;color:var(--g400);font-size:12px;}
+.cn{font-size:12.5px;font-weight:600;color:var(--teal-d);margin-bottom:2px;}
+.cd{font-size:11px;color:var(--g600);line-height:1.45;}
+.ctag{font-size:9px;padding:1px 5px;border-radius:20px;background:var(--gold-p);color:#7a5c0a;font-weight:500;margin-left:3px;}
+.sel-area{background:var(--g50);border-radius:var(--r);padding:9px 12px;min-height:48px;border:1px solid var(--g100);}
+.stag{
+  display:inline-flex;align-items:center;gap:4px;font-size:11px;
+  background:var(--white);border:1px solid var(--g200);border-radius:20px;
+  padding:2px 8px;margin:2px;color:var(--teal-d);
+}
+.rmtag{cursor:pointer;color:var(--g400);font-size:12px;line-height:1;}
 .rmtag:hover{color:var(--plum);}
 
-/* OUTPUT */
-.obox{font-size:12.5px;line-height:1.85;white-space:pre-wrap;background:var(--white);border:1px solid var(--g100);border-radius:var(--rl);padding:16px 20px;margin-top:10px;max-height:380px;overflow-y:auto;color:var(--g800);}
+/* ── OUTPUT BOX ──────────────────────────────── */
+.obox{
+  font-size:12.5px;line-height:1.85;white-space:pre-wrap;
+  background:var(--white);border:1px solid var(--g100);border-radius:var(--rl);
+  padding:16px 20px;margin-top:11px;
+  max-height:400px;overflow-y:auto;color:var(--g800);
+}
 
-/* LOADING */
-.loading{display:flex;align-items:center;gap:9px;padding:14px 0;color:var(--g600);font-size:13px;}
-.spinner{width:15px;height:15px;border:2px solid var(--g200);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+/* ── LOADING ─────────────────────────────────── */
+.loading{display:flex;align-items:center;gap:9px;padding:16px 0;color:var(--g600);font-size:13px;}
+.spinner{width:16px;height:16px;border:2px solid var(--g100);border-top-color:var(--teal);border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* CALC */
-.cresult{background:var(--teal-dark);color:#fff;border-radius:var(--rl);padding:16px 20px;margin-top:11px;}
-.cr-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.42);margin-bottom:3px;font-weight:600;}
-.cr-val{font-size:27px;font-weight:700;font-family:'Playfair Display',serif;color:#fff;}
-.cr-sub{font-size:12px;color:rgba(255,255,255,.38);margin-top:2px;}
-.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px;}
-.citem{background:rgba(255,255,255,.07);border-radius:var(--r);padding:9px 11px;}
-.ci-l{font-size:9px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;}
+/* ── CALCULATORS ─────────────────────────────── */
+.cresult{background:var(--teal-d);color:#fff;border-radius:var(--rl);padding:18px 20px;margin-top:12px;}
+.cr-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);margin-bottom:4px;font-weight:600;}
+.cr-val{font-size:28px;font-weight:700;font-family:'Playfair Display',serif;}
+.cr-sub{font-size:12px;color:rgba(255,255,255,.35);margin-top:3px;}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.citem{background:rgba(255,255,255,.07);border-radius:var(--r);padding:10px 12px;}
+.ci-l{font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
 .ci-v{font-size:14px;font-weight:600;color:#fff;}
 
-/* SUB TABS */
-.stabs{display:flex;gap:2px;border-bottom:1px solid var(--g100);margin-bottom:13px;}
-.stab{padding:7px 13px;font-size:12px;font-weight:500;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;color:var(--g600);margin-bottom:-1px;font-family:'Inter',sans-serif;transition:all .14s;}
+/* ── TABS ────────────────────────────────────── */
+.stabs{display:flex;gap:2px;border-bottom:1.5px solid var(--g100);margin-bottom:14px;}
+.stab{
+  padding:8px 14px;font-size:12px;font-weight:500;
+  background:none;border:none;border-bottom:2px solid transparent;
+  cursor:pointer;color:var(--g600);margin-bottom:-1.5px;
+  font-family:'Inter',sans-serif;transition:all .14s;
+}
+.stab:hover{color:var(--teal-d);}
 .stab.act{color:var(--teal);border-bottom-color:var(--teal);}
 .stpanel{display:none;}.stpanel.act{display:block;}
 
-/* WIZARD */
-.wres{background:var(--teal-pale);border:1px solid rgba(0,75,69,.15);border-radius:var(--rl);padding:16px 20px;margin-top:13px;}
-.wres h3{font-family:'Playfair Display',serif;font-size:16px;color:var(--teal-dark);margin-bottom:3px;}
-.wres p{font-size:12.5px;color:var(--g600);margin-bottom:11px;line-height:1.55;}
-.cki{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(0,75,69,.07);font-size:13px;}
+/* ── WIZARD ──────────────────────────────────── */
+.wres{background:var(--teal-p);border:1px solid rgba(0,75,69,.14);border-radius:var(--rl);padding:18px 20px;margin-top:14px;}
+.wres h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--teal-d);margin-bottom:4px;}
+.wres p{font-size:12.5px;color:var(--g600);margin-bottom:12px;line-height:1.55;}
+.cki{display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-bottom:1px solid rgba(0,75,69,.07);font-size:13px;}
 .cki:last-child{border:none;}
-.ckb{width:16px;height:16px;border-radius:50%;border:2px solid var(--g200);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;margin-top:1px;transition:all .14s;}
+.ckb{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--g200);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;margin-top:2px;transition:all .14s;}
 .ckb.done{background:var(--teal);border-color:var(--teal);color:#fff;}
 
-/* MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,40,36,.52);z-index:300;align-items:center;justify-content:center;}
-.overlay.open{display:flex;}
-.modal{background:var(--white);border-radius:var(--rxl);padding:24px;width:92%;max-width:530px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
-.modal h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--teal-dark);margin-bottom:4px;}
-.modal p{font-size:12.5px;color:var(--g600);margin-bottom:13px;line-height:1.5;}
-.modal-close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:var(--g400);margin-top:-3px;line-height:1;}
-.modal-close:hover{color:var(--plum);}
-
-/* CONFIRM MODAL */
-#confirm-overlay .modal{max-width:380px;text-align:center;}
-#confirm-msg{font-size:14px;color:var(--g800);margin:10px 0 18px;}
-
-/* TOAST */
-#toast{position:fixed;bottom:20px;right:20px;background:var(--teal-dark);color:#fff;padding:10px 17px;border-radius:var(--r);font-size:13px;transform:translateY(50px);opacity:0;transition:all .24s;z-index:999;box-shadow:var(--shadow-lg);pointer-events:none;border-left:3px solid rgba(255,255,255,.22);}
-#toast.show{transform:translateY(0);opacity:1;}
-
-
-/* ── DEAL HEALTH SCORE ── */
-.dhs-ring{display:flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;border:5px solid var(--g100);position:relative;flex-shrink:0;}
+/* ── DEAL HEALTH ─────────────────────────────── */
+.dhs-ring{display:flex;align-items:center;justify-content:center;width:82px;height:82px;border-radius:50%;border:5px solid var(--g100);flex-shrink:0;}
 .dhs-score{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;line-height:1;}
 .dhs-label{font-size:9px;color:var(--g400);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;text-align:center;}
-.flag-item{display:flex;align-items:flex-start;gap:9px;padding:8px 12px;border-radius:var(--r);margin-bottom:6px;font-size:13px;line-height:1.5;}
-.flag-critical{background:rgba(200,30,30,.07);border:1px solid rgba(200,30,30,.18);}
-.flag-warning{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);}
-.flag-tip{background:var(--teal-pale);border:1px solid rgba(0,75,69,.15);}
-.flag-ok{background:rgba(0,140,70,.07);border:1px solid rgba(0,140,70,.18);}
+.flag-item{display:flex;align-items:flex-start;gap:9px;padding:9px 12px;border-radius:var(--r);margin-bottom:7px;line-height:1.5;}
+.flag-critical{background:rgba(200,30,30,.06);border:1px solid rgba(200,30,30,.16);}
+.flag-warning{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.22);}
+.flag-tip{background:var(--teal-p);border:1px solid rgba(0,75,69,.14);}
+.flag-ok{background:rgba(0,140,70,.06);border:1px solid rgba(0,140,70,.16);}
 .flag-icon{font-size:15px;flex-shrink:0;margin-top:1px;}
 .flag-text{flex:1;}
-.flag-title{font-weight:600;color:var(--g800);margin-bottom:2px;}
+.flag-title{font-size:13px;font-weight:600;color:var(--g800);margin-bottom:2px;}
 .flag-desc{font-size:12px;color:var(--g600);}
 
-/* ── DOC VAULT ── */
-.doc-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--g50);font-size:13px;}
+/* ── DOC VAULT ───────────────────────────────── */
+.doc-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--g50);transition:background .12s;}
+.doc-item:hover{background:var(--g50);}
 .doc-item:last-child{border:none;}
 .doc-status-btn{width:20px;height:20px;border-radius:50%;border:2px solid var(--g200);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .14s;}
+.doc-status-btn:hover{border-color:var(--teal);}
 .doc-status-btn.done{background:var(--teal);border-color:var(--teal);color:#fff;}
-.doc-status-btn.warn{background:var(--gold);border-color:var(--gold);color:#fff;}
-.doc-name{flex:1;font-weight:500;color:var(--g800);}
-.doc-note{font-size:11px;color:var(--g400);font-style:italic;}
-.doc-badge{font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;}
-.db-req{background:rgba(200,30,30,.08);color:#9b1c1c;}
+.doc-name{flex:1;font-size:13px;font-weight:500;color:var(--g800);}
+.doc-note{font-size:11px;color:var(--g400);}
+.doc-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;}
+.db-req{background:rgba(200,30,30,.07);color:#9b1c1c;}
 .db-opt{background:var(--g50);color:var(--g600);}
 
-/* ── COMMISSION TRACKER ── */
-.comm-total{background:linear-gradient(135deg,var(--teal-dark),var(--teal));border-radius:var(--rl);padding:16px 20px;color:#fff;margin-bottom:14px;}
-.comm-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--g50);font-size:13px;}
+/* ── COMMISSION ──────────────────────────────── */
+.comm-total{background:linear-gradient(135deg,var(--teal-d),var(--teal));border-radius:var(--rl);padding:18px 22px;color:#fff;margin-bottom:14px;box-shadow:var(--sh2);}
+.comm-row{display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid var(--g50);font-size:13px;transition:background .12s;}
+.comm-row:hover{background:var(--g50);}
 .comm-row:last-child{border:none;}
 .comm-deal{flex:1;font-weight:500;color:var(--g800);}
-.comm-val{color:var(--g600);font-size:12px;min-width:90px;}
+.comm-val{color:var(--g600);font-size:12px;min-width:95px;}
 .comm-earned{font-weight:600;color:var(--plum);min-width:80px;text-align:right;}
 .comm-stage{font-size:10px;padding:2px 8px;border-radius:20px;}
-.cs-active{background:var(--teal-pale2);color:var(--teal);}
+.cs-active{background:var(--teal-p2);color:var(--teal);}
 .cs-closed{background:rgba(0,140,70,.1);color:rgb(0,100,50);}
-.cs-draft{background:rgba(201,168,76,.15);color:#7a5c0a;}
+.cs-draft{background:var(--gold-p);color:#7a5c0a;}
 
-/* ── EMAIL DRAFTER ── */
-.email-template-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--white);border:1px solid var(--g100);border-radius:var(--r);cursor:pointer;font-size:12.5px;color:var(--g800);transition:all .14s;margin-bottom:5px;font-family:'Inter',sans-serif;text-align:left;width:100%;}
-.email-template-btn:hover{border-color:var(--teal);background:var(--teal-pale);color:var(--teal-dark);}
-.email-template-btn .etb-icon{font-size:16px;flex-shrink:0;}
-.email-template-btn .etb-lbl{flex:1;font-weight:500;}
-.email-template-btn .etb-desc{font-size:11px;color:var(--g400);}
-.email-out{background:var(--white);border:1px solid var(--g100);border-radius:var(--rl);padding:16px 20px;font-size:13px;line-height:1.8;white-space:pre-wrap;color:var(--g800);max-height:380px;overflow-y:auto;margin-top:10px;}
+/* ── EMAIL DRAFTER ───────────────────────────── */
+.etmpl{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 12px;background:var(--white);
+  border:1.5px solid var(--g100);border-radius:var(--r);
+  cursor:pointer;font-size:12.5px;color:var(--g800);
+  transition:all .14s;margin-bottom:6px;
+  font-family:'Inter',sans-serif;text-align:left;width:100%;
+}
+.etmpl:hover{border-color:rgba(0,75,69,.3);background:var(--teal-p);color:var(--teal-d);}
+.etmpl-icon{font-size:16px;flex-shrink:0;}
+.etmpl-lbl{flex:1;font-weight:500;}
+.etmpl-desc{font-size:11px;color:var(--g400);}
+.email-out{
+  background:var(--white);border:1px solid var(--g100);border-radius:var(--rl);
+  padding:16px 20px;font-size:13px;line-height:1.8;
+  white-space:pre-wrap;color:var(--g800);
+  max-height:420px;overflow-y:auto;margin-top:11px;
+}
 
-/* ── COMPLIANCE CHECKLIST ── */
-.comp-section{margin-bottom:16px;}
-.comp-section-title{font-size:11px;font-weight:600;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.07em;padding:6px 0 8px;border-bottom:1px solid var(--g100);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
-.comp-item{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--g50);font-size:13px;}
+/* ── COMPLIANCE ──────────────────────────────── */
+.comp-section{margin-bottom:18px;}
+.comp-section-title{
+  font-size:11px;font-weight:600;color:var(--teal-d);
+  text-transform:uppercase;letter-spacing:.07em;
+  padding:6px 0 8px;border-bottom:1.5px solid var(--g100);
+  margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;
+}
+.comp-item{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--g50);}
 .comp-item:last-child{border:none;}
-.comp-chk{width:17px;height:17px;border-radius:4px;border:1.5px solid var(--g200);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;margin-top:1px;transition:all .14s;}
+.comp-chk{
+  width:17px;height:17px;border-radius:4px;border:1.5px solid var(--g200);
+  flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:10px;margin-top:1px;transition:all .14s;
+}
+.comp-chk:hover{border-color:var(--teal);}
 .comp-chk.done{background:var(--teal);border-color:var(--teal);color:#fff;}
-.comp-chk.na{background:var(--g100);border-color:var(--g200);color:var(--g400);}
-.comp-req{font-size:10px;padding:1px 6px;border-radius:20px;background:rgba(200,30,30,.08);color:#9b1c1c;font-weight:500;flex-shrink:0;margin-top:2px;}
-.comp-opt{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--g50);color:var(--g600);font-weight:500;flex-shrink:0;margin-top:2px;}
-.comp-progress{height:6px;background:var(--g100);border-radius:3px;margin-bottom:14px;overflow:hidden;}
-.comp-progress-bar{height:100%;background:var(--teal);border-radius:3px;transition:width .3s;}
+.comp-req{font-size:10px;padding:2px 6px;border-radius:20px;background:rgba(200,30,30,.07);color:#9b1c1c;font-weight:500;flex-shrink:0;margin-top:2px;}
+.comp-opt{font-size:10px;padding:2px 6px;border-radius:20px;background:var(--g50);color:var(--g600);font-weight:500;flex-shrink:0;margin-top:2px;}
+.comp-progress{height:5px;background:var(--g100);border-radius:3px;margin-bottom:14px;overflow:hidden;}
+.comp-progress-bar{height:100%;background:var(--teal);border-radius:3px;transition:width .35s;}
 
-/* MISC */
-.loi-note{background:var(--teal-pale);border:1px solid rgba(0,75,69,.14);border-radius:var(--r);padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--teal-dark);}
-.term-row{display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--g50);font-size:13px;line-height:1.5;}
+/* ── MISC COMPONENTS ─────────────────────────── */
+.loi-note{background:var(--teal-p);border:1px solid rgba(0,75,69,.13);border-radius:var(--r);padding:9px 13px;margin-bottom:11px;font-size:12px;color:var(--teal-d);line-height:1.5;}
+.term-row{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--g50);font-size:13px;line-height:1.5;}
 .term-row:last-child{border:none;}
-.tk{font-weight:600;color:var(--teal-dark);min-width:135px;flex-shrink:0;}
-.notes-wrap{background:var(--white);border-radius:var(--rl);border:1px solid var(--g100);overflow:hidden;}
-.notes-hdr{background:var(--teal-dark);padding:10px 15px;display:flex;align-items:center;justify-content:space-between;}
-.notes-hdr span{font-size:11px;font-weight:600;color:rgba(255,255,255,.62);text-transform:uppercase;letter-spacing:.05em;}
-#notes-ta{width:100%;border:none;outline:none;padding:13px;font-size:13px;font-family:'Inter',sans-serif;min-height:115px;resize:vertical;color:var(--g800);line-height:1.7;}
-.notes-ftr{padding:6px 13px;border-top:1px solid var(--g50);display:flex;justify-content:space-between;align-items:center;}
+.tk{font-weight:600;color:var(--teal-d);min-width:140px;flex-shrink:0;}
+.notes-wrap{background:var(--white);border-radius:var(--rl);border:1px solid var(--g100);overflow:hidden;box-shadow:var(--sh1);}
+.notes-hdr{background:var(--teal-d);padding:11px 15px;display:flex;align-items:center;justify-content:space-between;}
+.notes-hdr span{font-size:11px;font-weight:600;color:rgba(255,255,255,.58);text-transform:uppercase;letter-spacing:.05em;}
+#notes-ta{width:100%;border:none;outline:none;padding:14px;font-size:13px;font-family:'Inter',sans-serif;min-height:200px;resize:vertical;color:var(--g800);line-height:1.7;}
+.notes-ftr{padding:7px 14px;border-top:1px solid var(--g50);display:flex;justify-content:space-between;align-items:center;}
 .notes-ftr span{font-size:11px;color:var(--g400);}
-.sbtn{display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);font-size:12px;color:rgba(255,255,255,.62);cursor:pointer;font-family:'Inter',sans-serif;transition:all .13s;text-align:left;margin-bottom:3px;}
-.sbtn:hover{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2);}
-::-webkit-scrollbar{width:5px;}
-::-webkit-scrollbar-thumb{background:var(--g200);border-radius:5px;}
+.sbtn{display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);font-size:12px;color:rgba(255,255,255,.6);cursor:pointer;font-family:'Inter',sans-serif;transition:all .13s;text-align:left;margin-bottom:4px;width:100%;}
+.sbtn:hover{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.18);}
+.empty-state{text-align:center;padding:36px 20px;}
+.empty-state .es-icon{font-size:36px;margin-bottom:11px;}
+.empty-state h3{font-size:15px;font-weight:600;color:var(--teal-d);margin-bottom:5px;}
+.empty-state p{font-size:13px;color:var(--g600);margin-bottom:14px;}
+
+/* ── MODAL ───────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,40,36,.5);z-index:400;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.overlay.open{display:flex;animation:fadeIn .15s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--white);border-radius:var(--rxl);padding:26px;width:94%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:var(--sh3);animation:slideUp .18s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.modal-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.modal-hdr h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--teal-d);}
+.modal-hdr p{font-size:12.5px;color:var(--g600);margin-top:3px;}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--g400);line-height:1;padding:0;flex-shrink:0;}
+.modal-close:hover{color:var(--plum);}
+
+/* ── CONFIRM MODAL ───────────────────────────── */
+.confirm-body{text-align:center;padding:8px 0 4px;}
+.confirm-icon{font-size:32px;margin-bottom:10px;}
+.confirm-msg{font-size:14px;color:var(--g800);margin-bottom:18px;line-height:1.5;}
+
+/* ── TOAST ───────────────────────────────────── */
+#toast{
+  position:fixed;bottom:22px;right:22px;
+  background:var(--teal-d);color:#fff;
+  padding:10px 18px;border-radius:var(--r);
+  font-size:13px;
+  transform:translateY(60px);opacity:0;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+  z-index:999;box-shadow:var(--sh3);pointer-events:none;
+  border-left:3px solid rgba(255,255,255,.2);
+  max-width:320px;
+}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast.toast-err{background:#7f1d1d;border-left-color:rgba(255,255,255,.2);}
 </style>
 </head>
 <body>
 
-<!-- ══════════ SIDEBAR ══════════ -->
+<!-- ══════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════ -->
 <nav id="sb">
+<div id="sb-inner">
+
+  <!-- Logo -->
   <div class="sb-logo">
-    <div class="sb-logo-row">
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <a class="sb-logo-link" onclick="goPanel('dashboard',event)" href="javascript:void(0)">
+      <svg class="sb-logo-mark" width="34" height="34" viewBox="0 0 36 36" fill="none">
         <rect width="36" height="36" rx="8" fill="rgba(255,255,255,.08)"/>
         <path d="M9 9L9 27L17 27C23 27 27 23 27 18C27 13 23 9 17 9Z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
-        <line x1="6" y1="30" x2="30" y2="30" stroke="rgba(255,255,255,.28)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="6" y1="30" x2="30" y2="30" stroke="rgba(255,255,255,.25)" stroke-width="1.5" stroke-linecap="round"/>
         <circle cx="28" cy="12" r="3" fill="rgb(103,0,56)"/>
       </svg>
-      <div>
+      <div class="sb-logo-text">
         <div class="sb-logo-name">DealDesk</div>
         <div class="sb-logo-sub">Florida CRE · BBF</div>
       </div>
-    </div>
+    </a>
+    <button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M8 2L4 6L8 10"/>
+      </svg>
+    </button>
   </div>
 
-  <!-- DEAL SWITCHER -->
+  <!-- Deals -->
   <div class="ds-wrap">
     <div class="ds-hdr">
       <span class="ds-lbl">My Deals</span>
@@ -343,83 +593,116 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
   </div>
 
   <div class="sb-tag">Command Center</div>
+  <div class="nav-sec">
+    <a class="nav-a act" onclick="goPanel('dashboard',event)" href="javascript:void(0)" data-tip="Dashboard">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      <span class="nav-label">Dashboard</span></a>
+    <a class="nav-a" onclick="goPanel('wizard',event)" href="javascript:void(0)" data-tip="Contract Wizard">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l1.5 4h4l-3.5 2.5 1.5 4L8 9l-3.5 2.5 1.5-4L2.5 5H6.5z"/></svg>
+      <span class="nav-label">Contract Wizard</span></a>
+    <a class="nav-a" onclick="goPanel('clauses',event)" href="javascript:void(0)" data-tip="Terms & Clauses">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h10M3 12h6"/></svg>
+      <span class="nav-label">Terms &amp; Clauses</span></a>
+    <a class="nav-a" onclick="goPanel('loi',event)" href="javascript:void(0)" data-tip="LOI Generator">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12v12H2zM5 6h6M5 9h4"/></svg>
+      <span class="nav-label">LOI Generator</span></a>
+    <a class="nav-a" onclick="goPanel('explainer',event)" href="javascript:void(0)" data-tip="Clause Explainer">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="7"/><path d="M8 7v5M8 5v.5"/></svg>
+      <span class="nav-label">Clause Explainer</span></a>
+    <a class="nav-a" onclick="goPanel('calc',event)" href="javascript:void(0)" data-tip="Calculator">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 8h6M8 5v6"/></svg>
+      <span class="nav-label">Deal Calculator</span></a>
+  </div>
 
+  <div class="sb-tag">Intelligence</div>
   <div class="nav-sec">
-    <div class="nav-lbl">Workspace</div>
-    <a class="nav-a act" onclick="goPanel('dashboard')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>Dashboard</a>
-    <a class="nav-a" onclick="goPanel('wizard')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l1.5 4h4l-3.5 2.5 1.5 4L8 9l-3.5 2.5 1.5-4L2.5 5H6.5z"/></svg>Contract Wizard</a>
-    <a class="nav-a" onclick="goPanel('clauses')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Terms &amp; Clauses</a>
-    <a class="nav-a" onclick="goPanel('loi')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12v12H2zM5 6h6M5 9h4"/></svg>LOI Generator</a>
-    <a class="nav-a" onclick="goPanel('explainer')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="7"/><path d="M8 7v5M8 5v.5"/></svg>Clause Explainer</a>
-    <a class="nav-a" onclick="goPanel('calc')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 8h6M8 5v6"/></svg>Deal Calculator</a>
+    <a class="nav-a" onclick="goPanel('health',event)" href="javascript:void(0)" data-tip="Deal Health">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8h3l2-5 3 9 2-6 1 2h3"/></svg>
+      <span class="nav-label">Deal Health</span></a>
+    <a class="nav-a" onclick="goPanel('compliance',event)" href="javascript:void(0)" data-tip="Compliance">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/><circle cx="8" cy="8" r="7"/></svg>
+      <span class="nav-label">Compliance</span></a>
+    <a class="nav-a" onclick="goPanel('docs',event)" href="javascript:void(0)" data-tip="Document Vault">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9H3z"/><path d="M10 2v3h3"/><path d="M6 7h4M6 10h3"/></svg>
+      <span class="nav-label">Document Vault</span></a>
   </div>
+
+  <div class="sb-tag">Pipeline</div>
   <div class="nav-sec">
-    <div class="nav-lbl">Tools</div>
-    <a class="nav-a" onclick="goPanel('tracker')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 8l3 3 5-7"/></svg>Pipeline Tracker</a>
-    <a class="nav-a" onclick="goPanel('health')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v5l3 3"/><circle cx="8" cy="8" r="6"/></svg>Deal Health</a>
-    <a class="nav-a" onclick="goPanel('docs')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9H3z"/><path d="M10 2v3h3"/><path d="M6 7h4M6 10h3"/></svg>Doc Vault</a>
-    <a class="nav-a" onclick="goPanel('commission')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-3 3 2 4-5"/><circle cx="13" cy="4" r="1.5"/></svg>Commission</a>
-    <a class="nav-a" onclick="goPanel('email')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 5l7 5 7-5"/></svg>Email Drafter</a>
-    <a class="nav-a" onclick="goPanel('compliance')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/><circle cx="8" cy="8" r="7"/></svg>Compliance</a>
-    <a class="nav-a" onclick="goPanel('notes')" href="#">
-      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10v10l-3 2H3z"/><path d="M7 12v-3l3 3"/><path d="M6 6h4M6 9h2"/></svg>Notes &amp; Glossary</a>
+    <a class="nav-a" onclick="goPanel('tracker',event)" href="javascript:void(0)" data-tip="Pipeline">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 8l3 3 5-7"/></svg>
+      <span class="nav-label">Pipeline Tracker</span></a>
+    <a class="nav-a" onclick="goPanel('commission',event)" href="javascript:void(0)" data-tip="Commission">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="3"/><circle cx="10" cy="10" r="3"/><path d="M4 12L12 4"/></svg>
+      <span class="nav-label">Commission</span></a>
+    <a class="nav-a" onclick="goPanel('email',event)" href="javascript:void(0)" data-tip="Email Drafter">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 5l7 5 7-5"/></svg>
+      <span class="nav-label">Email Drafter</span></a>
+    <a class="nav-a" onclick="goPanel('notes',event)" href="javascript:void(0)" data-tip="Notes">
+      <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10v10l-3 2H3z"/><path d="M7 12v-3l3 3"/><path d="M6 6h4M6 9h2"/></svg>
+      <span class="nav-label">Notes &amp; Glossary</span></a>
   </div>
-  <div class="sb-foot"><p>DealDesk v3.0<br/><span>Florida · BBF Standard</span><br/>AI-powered · Offline capable</p></div>
+
+  <div class="sb-foot">
+    <p>DealDesk v5 · <span>Florida · BBF</span><br/>Auto-saved · AI-powered</p>
+    <button onclick="clearAllData()" style="margin-top:7px;background:none;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:rgba(255,255,255,.25);font-size:10px;padding:3px 9px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;width:100%;" onmouseover="this.style.color='#fca5a5';this.style.borderColor='rgba(200,50,50,.35)'" onmouseout="this.style.color='rgba(255,255,255,.25)';this.style.borderColor='rgba(255,255,255,.1)'">Clear all data</button>
+  </div>
+
+</div><!-- /sb-inner -->
 </nav>
 
-<!-- ══════════ MAIN ══════════ -->
+<!-- ══════════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════════ -->
 <div id="main">
+
+  <!-- Topbar -->
   <div class="topbar">
-    <div class="topbar-title" id="page-title">Dashboard</div>
+    <div class="topbar-left">
+      <div class="topbar-title" id="page-title">Dashboard</div>
+    </div>
     <div class="tb-right">
-      <span id="deal-chip">No active deal</span>
-      <span style="font-size:11px;color:var(--g400);" id="clock"></span>
+      <span id="deal-chip" onclick="goPanel('tracker',event)" title="Active deal — click to open pipeline">No active deal</span>
+      <span id="tb-clock"></span>
     </div>
   </div>
-  <div class="content">
 
-    <div class="scbar">
-      <span class="scbar-lbl">Quick:</span>
-      <button class="scbtn" onclick="goPanel('wizard')">⚡ Wizard</button>
-      <button class="scbtn" onclick="goPanel('clauses')">📋 Clauses</button>
-      <button class="scbtn" onclick="goPanel('loi')">📄 LOI</button>
-      <button class="scbtn" onclick="goPanel('explainer')">🔍 Explain</button>
-      <button class="scbtn" onclick="goPanel('calc')">🧮 Calc</button>
-      <button class="scbtn" onclick="goPanel('tracker')">📊 Pipeline</button>
-      <button class="scbtn" onclick="goPanel('health')">🏥 Health</button>
-      <button class="scbtn" onclick="goPanel('docs')">📁 Docs</button>
-      <button class="scbtn" onclick="goPanel('commission')">💰 Commission</button>
-      <button class="scbtn" onclick="goPanel('email')">✉️ Email</button>
-      <button class="scbtn" onclick="goPanel('compliance')">✅ Compliance</button>
-      <button class="scbtn" onclick="openDealModal()" style="margin-left:auto;">＋ New Deal</button>
-      <span style="font-size:9px;color:rgba(255,255,255,.18);margin-left:2px;">Alt+1–0</span>
+  <!-- Scrollable content -->
+  <div class="content" id="content-area">
+
+    <!-- Quick bar -->
+    <div class="qbar">
+      <span class="qbar-lbl">Jump to:</span>
+      <button class="qbtn" onclick="goPanel('wizard',event)">⚡ Wizard</button>
+      <button class="qbtn" onclick="goPanel('clauses',event)">📋 Clauses</button>
+      <button class="qbtn" onclick="goPanel('loi',event)">📄 LOI</button>
+      <button class="qbtn" onclick="goPanel('explainer',event)">🔍 Explain</button>
+      <button class="qbtn" onclick="goPanel('calc',event)">🧮 Calc</button>
+      <button class="qbtn" onclick="goPanel('health',event)">🏥 Health</button>
+      <button class="qbtn" onclick="goPanel('compliance',event)">✅ Compliance</button>
+      <button class="qbtn" onclick="goPanel('docs',event)">📁 Docs</button>
+      <button class="qbtn" onclick="goPanel('tracker',event)">📊 Pipeline</button>
+      <button class="qbtn" onclick="goPanel('commission',event)">💰 Commission</button>
+      <button class="qbtn" onclick="goPanel('email',event)">✉️ Email</button>
+      <div class="qbar-spacer"></div>
+      <button class="qbtn primary" onclick="openDealModal()">＋ New Deal</button>
+      <span class="qbar-hint">Alt 1–0</span>
     </div>
 
-    <!-- ════ DASHBOARD ════ -->
+    <!-- ═══ DASHBOARD ════════════════════════════ -->
     <div id="panel-dashboard" class="panel active">
+      <div class="ph"><h2>Florida CRE Command Center</h2><p>Multi-deal workspace · Contract Wizard · LOI Generator · 70+ Clause Library · AI-Powered Intelligence</p></div>
       <div class="hero">
-        <div style="z-index:1;">
+        <div>
           <div class="hero-line"></div>
-          <h1>Florida CRE Command Center</h1>
-          <p>Multi-deal workspace · Contract Wizard · LOI Generator · Calculator<br/>Florida BBF Standard · 70+ Clause Library · AI-Powered</p>
+          <h1>Welcome to DealDesk</h1>
+          <p>Create a deal in the sidebar to unlock your full workspace.<br/>Every tool is deal-aware — clause selections, LOI data, and notes save per deal.</p>
         </div>
-        <div style="text-align:right;z-index:1;">
-          <div style="font-size:9px;color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.1em;">Deal types</div>
+        <div>
+          <div style="font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;text-align:right;margin-bottom:4px;">Supported deal types</div>
           <div class="hero-tags">
             <span class="hero-tag">Office</span><span class="hero-tag">Retail</span><span class="hero-tag">Industrial</span>
-            <span class="hero-tag">Restaurant/Bar</span><span class="hero-tag">Franchise</span><span class="hero-tag">Business Sales</span>
+            <span class="hero-tag">Restaurant / Bar</span><span class="hero-tag">Franchise</span><span class="hero-tag">Business Sale</span>
           </div>
         </div>
       </div>
@@ -429,15 +712,16 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
         <div class="sc ag"><div class="sl">Clauses selected</div><div class="sv" id="stat-cls">0</div><div class="ss">For active deal</div></div>
         <div class="sc an"><div class="sl">LOI status</div><div class="sv" id="stat-loi" style="font-size:13px;padding-top:4px;font-family:'Inter',sans-serif;font-weight:500;">Not started</div><div class="ss">Latest document</div></div>
       </div>
-      <div class="g2" style="gap:13px;">
+      <div class="g2">
         <div>
           <div class="card">
             <div class="ct"><div class="bar"></div>How to use DealDesk</div>
-            <div style="font-size:13px;color:var(--g600);line-height:1.85;">
-              <b style="color:var(--teal-dark);">Step 1 · Create a deal</b> — Click "+ New" in the sidebar. Each deal has its own workspace with separate clause selections, LOI data, and notes. Switch between deals instantly by clicking them.<br/><br/>
-              <b style="color:var(--teal-dark);">Step 2 · Contract Wizard</b> — Answer 4 questions. Get the exact Florida contract needed + a completion checklist.<br/><br/>
-              <b style="color:var(--teal-dark);">Step 3 · Terms &amp; Clauses</b> — 70+ Florida BBF clauses. The most relevant for your deal type float to the top automatically (marked ★).<br/><br/>
-              <b style="color:var(--teal-dark);">Step 4 · LOI Generator</b> — All selected clauses auto-included. AI writes a professional ready-to-send LOI in seconds.
+            <div style="font-size:13px;color:var(--g600);line-height:1.9;">
+              <b style="color:var(--teal-d);">1 · Create a deal</b> — Click "+ New" in the sidebar. Every deal has its own clause selections, LOI data, and notes. Switch between deals instantly by clicking them.<br/><br/>
+              <b style="color:var(--teal-d);">2 · Contract Wizard</b> — Answer 4 questions and get the exact Florida contract needed with a completion checklist.<br/><br/>
+              <b style="color:var(--teal-d);">3 · Terms &amp; Clauses</b> — 70+ Florida BBF clauses. The most relevant for your deal type float to the top automatically (marked ★).<br/><br/>
+              <b style="color:var(--teal-d);">4 · LOI Generator</b> — AI writes a professional ready-to-send Florida LOI with your selected clauses auto-included.<br/><br/>
+              <b style="color:var(--teal-d);">5 · Deal Health</b> — AI reviews your deal for missing clauses, red flags, and Florida-specific requirements before you send anything.
             </div>
           </div>
         </div>
@@ -445,90 +729,52 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
           <div class="card">
             <div class="ct"><div class="bar"></div>Active pipeline</div>
             <div id="dash-pipe"><div style="font-size:13px;color:var(--g400);">No deals yet. Click "+ New" to get started.</div></div>
-            <div style="margin-top:11px;"><button class="btn btn-sm btn-out" onclick="goPanel('tracker')">Open pipeline →</button></div>
+            <div style="margin-top:12px;"><button class="btn btn-sm btn-out" onclick="goPanel('tracker',event)">Open full pipeline →</button></div>
           </div>
           <div class="card">
             <div class="ct"><div class="bar"></div>Quick notes</div>
-            <textarea id="dash-notes" style="width:100%;border:1px solid var(--g100);border-radius:var(--r);padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;resize:vertical;min-height:78px;color:var(--g800);outline:none;" placeholder="Deal notes, client info, reminders..." oninput="syncDashNotes(this.value)"></textarea>
+            <textarea id="dash-notes" style="width:100%;border:1.5px solid var(--g100);border-radius:var(--r);padding:9px 11px;font-size:13px;font-family:'Inter',sans-serif;resize:vertical;min-height:90px;color:var(--g800);outline:none;line-height:1.65;transition:border-color .15s;" placeholder="Quick notes for this deal..." onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--g100)'" oninput="syncDashNotes(this.value)"></textarea>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ════ CONTRACT WIZARD ════ -->
+    <!-- ═══ CONTRACT WIZARD ══════════════════════ -->
     <div id="panel-wizard" class="panel">
-      <div class="ph"><h2>Contract Wizard</h2><p>Answer 4 questions — get the exact contract you need plus a completion checklist.</p></div>
+      <div class="ph"><h2>Contract Wizard</h2><p>Answer 4 questions — get the exact Florida contract you need plus a step-by-step completion checklist.</p></div>
       <div class="card">
         <div class="g2">
-          <div class="fg"><label>1. Transaction type</label>
-            <select id="w-trans" onchange="runWizard()">
-              <option value="">— Select —</option>
-              <option value="sale">Buying / selling a business or property</option>
-              <option value="lease">Leasing a commercial space</option>
-              <option value="listing">Listing a business or property</option>
-              <option value="rep">Representing a buyer or tenant</option>
-            </select></div>
-          <div class="fg"><label>2. Who are you representing?</label>
-            <select id="w-rep" onchange="runWizard()">
-              <option value="">— Select —</option>
-              <option value="seller">Seller / Landlord</option>
-              <option value="buyer">Buyer / Tenant</option>
-              <option value="both">Both (dual agency)</option>
-            </select></div>
-          <div class="fg"><label>3. Have parties agreed on basic terms?</label>
-            <select id="w-terms" onchange="runWizard()">
-              <option value="">— Select —</option>
-              <option value="no">No — still negotiating</option>
-              <option value="yes">Yes — ready to formalize</option>
-            </select></div>
-          <div class="fg"><label>4. Property / business type</label>
-            <select id="w-prop" onchange="runWizard()">
-              <option value="">— Select —</option>
-              <option>Office</option><option>Retail</option><option>Restaurant / Bar</option>
-              <option>Industrial / Warehouse</option><option>Franchise</option>
-              <option>Service business</option><option>Self Storage</option>
-              <option>Health Care / ALF</option><option>Land</option>
-              <option>Multifamily</option><option>Mixed use</option><option>Hotel / Hospitality</option>
-            </select></div>
+          <div class="fg"><label>1 · Transaction type</label>
+            <select id="w-trans" onchange="runWizard()"><option value="">— Select —</option><option value="sale">Buying / selling a business or property</option><option value="lease">Leasing a commercial space</option><option value="listing">Listing a business or property</option><option value="rep">Representing a buyer or tenant</option></select></div>
+          <div class="fg"><label>2 · Who are you representing?</label>
+            <select id="w-rep" onchange="runWizard()"><option value="">— Select —</option><option value="seller">Seller / Landlord</option><option value="buyer">Buyer / Tenant</option><option value="both">Both (dual agency)</option></select></div>
+          <div class="fg"><label>3 · Have parties agreed on basic terms?</label>
+            <select id="w-terms" onchange="runWizard()"><option value="">— Select —</option><option value="no">No — still negotiating</option><option value="yes">Yes — ready to formalize</option></select></div>
+          <div class="fg"><label>4 · Property / business type</label>
+            <select id="w-prop" onchange="runWizard()"><option value="">— Select —</option><option>Office</option><option>Retail</option><option>Restaurant / Bar</option><option>Industrial / Warehouse</option><option>Franchise</option><option>Service business</option><option>Self Storage</option><option>Health Care / ALF</option><option>Land</option><option>Multifamily</option><option>Mixed use</option><option>Hotel / Hospitality</option></select></div>
         </div>
       </div>
       <div id="wiz-res" style="display:none;" class="wres">
-        <span class="pill p-plum" id="wr-badge" style="margin-bottom:8px;display:inline-block;"></span>
+        <span class="pill p-plum" id="wr-badge" style="margin-bottom:9px;display:inline-block;"></span>
         <h3 id="wr-name"></h3><p id="wr-desc"></p>
-        <div class="ct" style="margin-bottom:6px;"><div class="bar"></div>Completion checklist</div>
+        <div class="ct" style="margin-bottom:7px;"><div class="bar"></div>Completion checklist</div>
         <div id="wr-list"></div>
         <div class="btn-group">
-          <button class="btn btn-teal" onclick="goPanel('clauses')">Add terms &amp; clauses →</button>
-          <button class="btn btn-plum" onclick="goPanel('loi')">Go to LOI generator →</button>
+          <button class="btn btn-teal" onclick="goPanel('clauses',event)">Add terms &amp; clauses →</button>
+          <button class="btn btn-plum" onclick="goPanel('loi',event)">Go to LOI generator →</button>
         </div>
       </div>
     </div>
 
-    <!-- ════ TERMS & CLAUSES ════ -->
+    <!-- ═══ TERMS & CLAUSES ══════════════════════ -->
     <div id="panel-clauses" class="panel">
-      <div class="ph"><h2>Terms &amp; Contingencies</h2><p>70+ Florida BBF clauses. Clauses marked ★ are the most relevant for your active deal type and appear at the top automatically. Hover to preview full legal language.</p></div>
-      <div class="g2" style="gap:13px;align-items:start;">
+      <div class="ph"><h2>Terms &amp; Contingencies</h2><p>70+ Florida BBF clauses. Clauses marked ★ are the most relevant for your active deal type and float to the top automatically. Hover any clause to preview its full legal language.</p></div>
+      <div class="g2" style="gap:14px;align-items:start;">
         <div>
-          <div class="card" style="padding:13px 15px;">
+          <div class="card" style="padding:14px 16px;">
             <div class="fbar">
-              <select id="f-type" onchange="renderClauses()">
-                <option value="all">All types</option>
-                <option value="sale">Purchase &amp; Sale</option>
-                <option value="lease">Lease</option>
-                <option value="loi">LOI</option>
-                <option value="universal">Universal</option>
-              </select>
-              <select id="f-cat" onchange="renderClauses()">
-                <option value="all">All categories</option>
-                <option value="Contingency">Contingencies</option>
-                <option value="Term">Terms</option>
-                <option value="Protection">Protections</option>
-                <option value="Financial">Financial</option>
-                <option value="Operational">Operational</option>
-                <option value="Disclosure">Disclosures</option>
-                <option value="Inspection">Inspection</option>
-                <option value="Tax">Tax &amp; Allocation</option>
-              </select>
+              <select id="f-type" onchange="renderClauses()"><option value="all">All types</option><option value="sale">Purchase &amp; Sale</option><option value="lease">Lease</option><option value="loi">LOI</option><option value="universal">Universal</option></select>
+              <select id="f-cat" onchange="renderClauses()"><option value="all">All categories</option><option value="Contingency">Contingencies</option><option value="Term">Terms</option><option value="Protection">Protections</option><option value="Financial">Financial</option><option value="Operational">Operational</option><option value="Disclosure">Disclosures</option><option value="Inspection">Inspection</option><option value="Tax">Tax &amp; Allocation</option></select>
               <input id="f-search" type="text" placeholder="Search 70+ clauses..." oninput="renderClauses()"/>
             </div>
             <div class="clib" id="clause-grid"></div>
@@ -536,10 +782,7 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
         </div>
         <div>
           <div class="card">
-            <div class="ct" style="justify-content:space-between;">
-              <div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Selected clauses</div>
-              <span class="pill p-plum" id="sel-count">0 selected</span>
-            </div>
+            <div class="ct" style="justify-content:space-between;"><div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Selected clauses</div><span class="pill p-plum" id="sel-count">0 selected</span></div>
             <div class="sel-area" id="sel-tags"><span style="font-size:12px;color:var(--g400);">Click any clause to add it here.</span></div>
             <div class="btn-group">
               <button class="btn btn-xs btn-out" onclick="clearClauses()">Clear all</button>
@@ -549,84 +792,80 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
           </div>
           <div class="card">
             <div class="ct"><div class="bar"></div>Legal language preview</div>
-            <div id="clause-preview" style="font-size:12px;color:var(--g600);line-height:1.75;min-height:58px;font-style:italic;">Hover any clause to preview its full legal language here.</div>
+            <div id="clause-preview" style="font-size:12px;color:var(--g400);line-height:1.75;min-height:60px;font-style:italic;">Hover any clause to preview its full legal language here.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ════ LOI GENERATOR ════ -->
+    <!-- ═══ LOI GENERATOR ════════════════════════ -->
     <div id="panel-loi" class="panel">
-      <div class="ph"><h2>LOI Generator</h2><p>Fill in deal details — your selected clauses are included automatically. AI writes a complete ready-to-send Florida LOI.</p></div>
-      <div class="g2" style="gap:13px;align-items:start;">
+      <div class="ph"><h2>LOI Generator</h2><p>Fill in the deal details — your selected clauses are included automatically. AI writes a complete ready-to-send Florida LOI.</p></div>
+      <div class="g2" style="gap:14px;align-items:start;">
         <div>
           <div class="card">
             <div class="ct"><div class="bar"></div>Deal details</div>
             <div class="g2">
-              <div class="fg"><label>Property / business name or address</label><input type="text" id="loi-addr" placeholder="123 Main St Tampa FL  or  ABC Pizza LLC"/></div>
-              <div class="fg"><label>Type</label>
-                <select id="loi-ptype"><option>Office</option><option>Retail</option><option>Restaurant / Bar</option><option>Industrial</option><option>Franchise</option><option>Service business</option><option>Land</option><option>Multifamily</option><option>Hotel</option><option>Self Storage</option></select></div>
+              <div class="fg" style="grid-column:1/-1;"><label>Property / business name or address</label><input type="text" id="loi-addr" placeholder="123 Main St Tampa FL  or  ABC Pizza LLC"/></div>
+              <div class="fg"><label>Type</label><select id="loi-ptype"><option>Office</option><option>Retail</option><option>Restaurant / Bar</option><option>Industrial</option><option>Franchise</option><option>Service business</option><option>Land</option><option>Multifamily</option><option>Hotel</option><option>Self Storage</option></select></div>
+              <div class="fg"><label>Transaction</label><select id="loi-trans"><option value="sale">Purchase / Business Sale</option><option value="lease">Lease</option></select></div>
               <div class="fg"><label>Buyer / Tenant name</label><input type="text" id="loi-buyer" placeholder="ABC Company LLC"/></div>
               <div class="fg"><label>Seller / Landlord name</label><input type="text" id="loi-seller" placeholder="XYZ Holdings Inc."/></div>
-              <div class="fg"><label>Transaction type</label>
-                <select id="loi-trans"><option value="sale">Purchase / Business Sale</option><option value="lease">Lease</option></select></div>
               <div class="fg"><label>Price / Rent</label><input type="text" id="loi-price" placeholder="$850,000  or  $6,500/mo"/></div>
               <div class="fg"><label>Term / Closing timeline</label><input type="text" id="loi-term" placeholder="36 months  or  60 days to close"/></div>
-              <div class="fg"><label>Square footage</label><input type="text" id="loi-sqft" placeholder="3,200 SF"/></div>
             </div>
-            <div class="fg"><label>Additional notes / special terms</label>
-              <textarea id="loi-notes" placeholder="Seller financing, SBA loan, free rent, liquor license, training period..."></textarea></div>
+            <div class="fg"><label>Square footage</label><input type="text" id="loi-sqft" placeholder="3,200 SF"/></div>
+            <div class="fg"><label>Additional notes / special terms</label><textarea id="loi-notes" placeholder="Seller financing, SBA loan, free rent, liquor license, training period..."></textarea></div>
             <div class="loi-note" id="loi-note">No clauses selected — add them in Terms &amp; Clauses for a more complete LOI.</div>
             <div class="btn-group">
               <button class="btn btn-teal" onclick="buildLOI()">Generate LOI</button>
-              <button class="btn btn-out" onclick="goPanel('clauses')">← Edit clauses</button>
+              <button class="btn btn-out" onclick="goPanel('clauses',event)">← Edit clauses</button>
             </div>
           </div>
         </div>
         <div>
-          <div class="card" style="min-height:300px;">
-            <div class="ct"><div class="bar"></div>Generated LOI</div>
+          <div class="card" style="min-height:320px;">
+            <div class="ct" style="justify-content:space-between;"><div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Generated LOI</div><button class="btn btn-xs btn-out" id="loi-copy-btn" style="display:none;" onclick="copyEl('loi-text')">Copy</button></div>
             <div id="loi-out" style="font-size:13px;color:var(--g400);">Your LOI will appear here once generated.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ════ CLAUSE EXPLAINER ════ -->
+    <!-- ═══ CLAUSE EXPLAINER ═════════════════════ -->
     <div id="panel-explainer" class="panel">
-      <div class="ph"><h2>Clause Explainer</h2><p>Paste any legal language for an instant plain-English breakdown — what it means, why it matters, what to watch out for.</p></div>
-      <div class="g2" style="gap:13px;align-items:start;">
+      <div class="ph"><h2>Clause Explainer</h2><p>Paste any legal language for an instant plain-English breakdown — what it means, why it matters, and what to watch out for.</p></div>
+      <div class="g2" style="gap:14px;align-items:start;">
         <div>
           <div class="card">
-            <div class="fg"><label>Paste legal clause or contract language</label>
-              <textarea id="exp-in" style="min-height:165px;" placeholder='"Tenant shall indemnify, defend and hold harmless Landlord from and against any and all claims..."'></textarea></div>
+            <div class="fg"><label>Paste legal clause or contract language</label><textarea id="exp-in" style="min-height:165px;" placeholder='"Tenant shall indemnify, defend and hold harmless Landlord from and against any and all claims..."'></textarea></div>
             <div class="btn-group">
               <button class="btn btn-teal" onclick="explainClause()">Explain in plain English</button>
               <button class="btn btn-sm btn-out" onclick="document.getElementById('exp-in').value=''">Clear</button>
             </div>
           </div>
-          <div class="card" style="background:var(--teal-dark);border-color:var(--teal-dark);">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.38);margin-bottom:8px;font-weight:600;">Load sample clause</div>
+          <div class="card" style="background:var(--teal-d);border-color:var(--teal-d);">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.35);margin-bottom:9px;font-weight:600;">Load sample clause</div>
             <button class="sbtn" onclick="loadSample('indemnify')">→ Indemnification clause</button>
             <button class="sbtn" onclick="loadSample('nnn')">→ NNN expense pass-through</button>
             <button class="sbtn" onclick="loadSample('default')">→ Tenant default clause</button>
-            <button class="sbtn" onclick="loadSample('holdover')">→ Holdover tenant clause</button>
-            <button class="sbtn" onclick="loadSample('force')">→ Force majeure clause</button>
+            <button class="sbtn" onclick="loadSample('holdover')">→ Holdover tenant (150%)</button>
+            <button class="sbtn" onclick="loadSample('force')">→ Force majeure</button>
             <button class="sbtn" onclick="loadSample('noncompete')">→ Non-compete (FL §542.335)</button>
           </div>
         </div>
         <div>
-          <div class="card" style="min-height:290px;">
+          <div class="card" style="min-height:300px;">
             <div class="ct"><div class="bar"></div>Plain-English explanation</div>
-            <div id="exp-out" style="font-size:13px;color:var(--g400);line-height:1.75;">Paste a clause on the left and click Explain.</div>
+            <div id="exp-out" style="font-size:13px;color:var(--g400);line-height:1.8;">Paste a clause on the left and click Explain.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ════ CALCULATOR ════ -->
+    <!-- ═══ CALCULATOR ═══════════════════════════ -->
     <div id="panel-calc" class="panel">
-      <div class="ph"><h2>Deal Calculator</h2><p>Fast Florida CRE math — lease cost, cap rate, price/SF, commission, NNN estimates.</p></div>
+      <div class="ph"><h2>Deal Calculator</h2><p>Fast Florida CRE math — lease cost, cap rate, price/SF, commission, and NNN estimates.</p></div>
       <div class="stabs">
         <button class="stab act" onclick="switchCalc('c-lease')">Lease cost</button>
         <button class="stab" onclick="switchCalc('c-cap')">Cap rate</button>
@@ -668,9 +907,81 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
       </div><div id="nnn-res"></div></div></div>
     </div>
 
-    <!-- ════ PIPELINE TRACKER ════ -->
+    <!-- ═══ DEAL HEALTH ═══════════════════════════ -->
+    <div id="panel-health" class="panel">
+      <div class="ph"><h2>Deal Health &amp; Red Flags</h2><p>AI reviews your active deal for missing clauses, risky gaps, and Florida-specific requirements. Run this before sending any LOI or PSA.</p></div>
+      <div id="health-no-deal" style="display:block;"><div class="card empty-state"><div class="es-icon">🏥</div><h3>No active deal</h3><p>Select or create a deal to run a health check.</p><button class="btn btn-teal btn-sm" onclick="openDealModal()">+ Create deal</button></div></div>
+      <div id="health-content" style="display:none;">
+        <div class="g2" style="gap:14px;align-items:start;">
+          <div>
+            <div class="card">
+              <div class="ct"><div class="bar"></div>Deal health score</div>
+              <div style="display:flex;align-items:center;gap:18px;margin-bottom:16px;">
+                <div class="dhs-ring" id="health-ring"><div><div class="dhs-score" id="health-score">—</div><div class="dhs-label">Score</div></div></div>
+                <div style="flex:1;"><div style="font-size:15px;font-weight:600;color:var(--teal-d);margin-bottom:5px;" id="health-grade">Run a review to see your score</div><div style="font-size:12.5px;color:var(--g600);line-height:1.6;" id="health-summary">Click Run AI Review to analyze your active deal.</div></div>
+              </div>
+              <button class="btn btn-teal" id="health-run-btn" onclick="runHealthCheck()">Run AI Review</button>
+            </div>
+            <div class="card"><div class="ct"><div class="bar"></div>Deal snapshot</div><div id="health-snapshot" style="font-size:13px;color:var(--g600);line-height:1.9;"></div></div>
+          </div>
+          <div>
+            <div class="card" style="min-height:320px;">
+              <div class="ct" style="justify-content:space-between;"><div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Red flags &amp; recommendations</div><span id="flag-count" class="pill p-gray">0 items</span></div>
+              <div id="health-flags"><div style="font-size:13px;color:var(--g400);">Run a review to see your deal analysis.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ COMPLIANCE ════════════════════════════ -->
+    <div id="panel-compliance" class="panel">
+      <div class="ph"><h2>Florida Pre-Closing Compliance</h2><p>A dynamic checklist of every Florida-specific requirement for your deal type. Updates automatically when you switch deals.</p></div>
+      <div id="comp-no-deal" style="display:block;"><div class="card empty-state"><div class="es-icon">✅</div><h3>No active deal</h3><p>Select or create a deal to see its compliance checklist.</p></div></div>
+      <div id="comp-content" style="display:none;">
+        <div class="g2" style="gap:14px;align-items:start;">
+          <div>
+            <div class="card" style="padding:16px 0;">
+              <div class="ct" style="padding:0 18px 9px;justify-content:space-between;"><div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Pre-closing checklist</div><span id="comp-label" class="pill p-teal">0 / 0</span></div>
+              <div class="comp-progress" style="margin:0 18px 12px;"><div class="comp-progress-bar" id="comp-bar" style="width:0%"></div></div>
+              <div id="comp-list" style="padding:0 4px;"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card"><div class="ct"><div class="bar"></div>Florida-specific warnings</div><div id="comp-warnings" style="font-size:13px;color:var(--g600);line-height:1.85;"></div></div>
+            <div class="card" style="background:var(--teal-d);border-color:var(--teal-d);"><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:8px;">Reset checklist</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:10px;">Reset all items to unchecked for this deal.</div><button class="btn btn-sm" style="background:rgba(255,255,255,.09);color:#fff;border-color:rgba(255,255,255,.14);" onclick="resetCompliance()">Reset</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DOCUMENT VAULT ════════════════════════ -->
+    <div id="panel-docs" class="panel">
+      <div class="ph"><h2>Document Vault</h2><p>Track every document required for your active deal. Auto-populates based on deal type when you switch deals.</p></div>
+      <div id="docs-no-deal" style="display:block;"><div class="card empty-state"><div class="es-icon">📁</div><h3>No active deal</h3><p>Select or create a deal to see its document checklist.</p></div></div>
+      <div id="docs-content" style="display:none;">
+        <div class="g2" style="gap:14px;align-items:start;">
+          <div>
+            <div class="card" style="padding:16px 0;">
+              <div class="ct" style="padding:0 18px 9px;justify-content:space-between;"><div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Required documents</div><span id="docs-progress-label" class="pill p-teal">0 / 0</span></div>
+              <div class="comp-progress" style="margin:0 18px 12px;"><div class="comp-progress-bar" id="docs-bar" style="width:0%"></div></div>
+              <div id="docs-list"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card"><div class="ct"><div class="bar"></div>Florida document guide</div><div id="docs-guide" style="font-size:13px;color:var(--g600);line-height:1.9;"></div></div>
+            <div class="card" style="background:var(--teal-d);border-color:var(--teal-d);">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.35);margin-bottom:9px;font-weight:600;">Add custom document</div>
+              <div style="display:flex;gap:7px;"><input type="text" id="custom-doc-input" placeholder="Document name..." style="flex:1;padding:8px 10px;border:1.5px solid rgba(255,255,255,.14);border-radius:var(--r);font-size:12px;background:rgba(255,255,255,.07);color:#fff;font-family:'Inter',sans-serif;outline:none;"/><button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.14);" onclick="addCustomDoc()">Add</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PIPELINE TRACKER ══════════════════════ -->
     <div id="panel-tracker" class="panel">
-      <div class="ph"><h2>Pipeline Tracker</h2><p>Manage all your deals. Click any deal to switch your active workspace. Archive, draft, or delete from here.</p></div>
+      <div class="ph"><h2>Pipeline Tracker</h2><p>All your deals in one view. Click any deal to switch your active workspace. Archive, draft, or delete from here.</p></div>
       <div class="stabs">
         <button class="stab act" onclick="switchTracker('t-active')">Active</button>
         <button class="stab" onclick="switchTracker('t-draft')">Drafts</button>
@@ -681,129 +992,35 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
       <div id="t-draft" class="stpanel"><div id="tr-draft"><div style="font-size:13px;color:var(--g400);padding:12px 0;">No draft deals.</div></div></div>
       <div id="t-arch" class="stpanel"><div id="tr-arch"><div style="font-size:13px;color:var(--g400);padding:12px 0;">No archived deals.</div></div></div>
       <div id="t-all" class="stpanel"><div id="tr-all"><div style="font-size:13px;color:var(--g400);padding:12px 0;">No deals yet.</div></div></div>
-      <div style="margin-top:12px;"><button class="btn btn-teal btn-sm" onclick="openDealModal()">+ Add new deal</button></div>
+      <div style="margin-top:14px;"><button class="btn btn-teal btn-sm" onclick="openDealModal()">+ Add new deal</button></div>
     </div>
 
-    <!-- ════ NOTES & GLOSSARY ════ -->
-    <div id="panel-notes" class="panel">
-      <div class="ph"><h2>Notes &amp; Glossary</h2><p>Scratch pad synced with dashboard, plus a full Florida CRE reference glossary.</p></div>
-      <div class="g2" style="gap:13px;align-items:start;">
-        <div>
-          <div class="notes-wrap">
-            <div class="notes-hdr">
-              <span>Deal notes</span>
-              <button class="btn btn-xs" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.14);" onclick="clearNotes()">Clear</button>
-            </div>
-            <textarea id="notes-ta" placeholder="Type notes here — synced with dashboard...&#10;&#10;Client preferences, property details, negotiation points, follow-ups..."></textarea>
-            <div class="notes-ftr">
-              <span id="notes-ct">0 characters</span>
-              <button class="btn btn-xs btn-out" onclick="copyNotes()">Copy all</button>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="card">
-            <div class="ct"><div class="bar"></div>Florida CRE glossary</div>
-            <div id="cheat-list"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-    <!-- ════ DEAL HEALTH ════ -->
-    <div id="panel-health" class="panel">
-      <div class="ph"><h2>Deal Health &amp; Red Flags</h2><p>AI reviews your active deal for missing clauses, risky gaps, and critical Florida-specific requirements. Run this before sending any LOI or PSA.</p></div>
-      <div id="health-no-deal" class="card" style="text-align:center;padding:30px;">
-        <div style="font-size:32px;margin-bottom:10px;">🏥</div>
-        <div style="font-size:15px;font-weight:600;color:var(--teal-dark);margin-bottom:6px;">No active deal selected</div>
-        <div style="font-size:13px;color:var(--g600);margin-bottom:14px;">Create or select a deal from the sidebar to run a health check.</div>
-        <button class="btn btn-teal btn-sm" onclick="openDealModal()">+ Create deal</button>
-      </div>
-      <div id="health-content" style="display:none;">
-        <div class="g2" style="gap:13px;align-items:start;">
-          <div>
-            <div class="card">
-              <div class="ct"><div class="bar"></div>Deal health score</div>
-              <div style="display:flex;align-items:center;gap:18px;margin-bottom:14px;">
-                <div class="dhs-ring" id="health-ring"><div><div class="dhs-score" id="health-score">—</div><div class="dhs-label">Score</div></div></div>
-                <div style="flex:1;">
-                  <div style="font-size:15px;font-weight:600;color:var(--teal-dark);margin-bottom:4px;" id="health-grade">Run a review to see your score</div>
-                  <div style="font-size:12.5px;color:var(--g600);line-height:1.6;" id="health-summary">Click "Run AI Review" to analyze your active deal for gaps, missing clauses, and Florida-specific requirements.</div>
-                </div>
-              </div>
-              <button class="btn btn-teal" id="health-run-btn" onclick="runHealthCheck()">Run AI Review</button>
-            </div>
-            <div class="card"><div class="ct"><div class="bar"></div>Quick deal snapshot</div><div id="health-snapshot" style="font-size:13px;color:var(--g600);line-height:1.9;"></div></div>
-          </div>
-          <div>
-            <div class="card" style="min-height:300px;">
-              <div class="ct" style="justify-content:space-between;"><div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Red flags &amp; recommendations</div><span id="flag-count" class="pill p-gray">0 items</span></div>
-              <div id="health-flags"><div style="font-size:13px;color:var(--g400);">Run a review to see your deal analysis.</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ════ DOC VAULT ════ -->
-    <div id="panel-docs" class="panel">
-      <div class="ph"><h2>Document Vault</h2><p>Track every document required for your active deal. Auto-updates when you switch deals.</p></div>
-      <div id="docs-no-deal" class="card" style="text-align:center;padding:30px;"><div style="font-size:32px;margin-bottom:10px;">📁</div><div style="font-size:15px;font-weight:600;color:var(--teal-dark);margin-bottom:6px;">No active deal selected</div><div style="font-size:13px;color:var(--g600);">Select or create a deal to see its document checklist.</div></div>
-      <div id="docs-content" style="display:none;">
-        <div class="g2" style="gap:13px;align-items:start;">
-          <div>
-            <div class="card" style="padding:14px 0;">
-              <div class="ct" style="padding:0 18px 10px;justify-content:space-between;"><div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Required documents</div><span id="docs-progress-label" class="pill p-teal">0 / 0 complete</span></div>
-              <div class="comp-progress" style="margin:0 18px 14px;"><div class="comp-progress-bar" id="docs-bar" style="width:0%"></div></div>
-              <div id="docs-list"></div>
-            </div>
-          </div>
-          <div>
-            <div class="card"><div class="ct"><div class="bar"></div>Florida document guide</div><div id="docs-guide" style="font-size:13px;color:var(--g600);line-height:1.85;"></div></div>
-            <div class="card" style="background:var(--teal-dark);border-color:var(--teal-dark);">
-              <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.38);margin-bottom:9px;font-weight:600;">Add custom document</div>
-              <div style="display:flex;gap:7px;"><input type="text" id="custom-doc-input" placeholder="Document name..." style="flex:1;padding:7px 10px;border:1px solid rgba(255,255,255,.15);border-radius:var(--r);font-size:12px;background:rgba(255,255,255,.08);color:#fff;font-family:'Inter',sans-serif;"/><button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.15);" onclick="addCustomDoc()">Add</button></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ════ COMMISSION TRACKER ════ -->
+    <!-- ═══ COMMISSION ════════════════════════════ -->
     <div id="panel-commission" class="panel">
-      <div class="ph"><h2>Commission Tracker</h2><p>Track projected and closed commissions across your entire pipeline.</p></div>
+      <div class="ph"><h2>Commission Tracker</h2><p>Track projected and closed commissions across your entire pipeline. Know your numbers at a glance.</p></div>
       <div class="comm-total">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:4px;">Total projected commission</div><div style="font-size:30px;font-weight:700;font-family:'Playfair Display',serif;" id="comm-total-val">$0</div></div>
-          <div style="display:flex;gap:20px;">
-            <div style="text-align:center;"><div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Closed</div><div style="font-size:18px;font-weight:600;color:#4ade80;" id="comm-closed-val">$0</div></div>
-            <div style="text-align:center;"><div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Active pipeline</div><div style="font-size:18px;font-weight:600;color:var(--gold);" id="comm-active-val">$0</div></div>
-            <div style="text-align:center;"><div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Deals tracked</div><div style="font-size:18px;font-weight:600;" id="comm-count-val">0</div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.38);font-weight:600;margin-bottom:5px;">Total projected</div><div style="font-size:30px;font-weight:700;font-family:'Playfair Display',serif;" id="comm-total-val">$0</div></div>
+          <div style="display:flex;gap:22px;">
+            <div style="text-align:center;"><div style="font-size:9px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Closed</div><div style="font-size:19px;font-weight:600;color:#4ade80;" id="comm-closed-val">$0</div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Active</div><div style="font-size:19px;font-weight:600;color:var(--gold);" id="comm-active-val">$0</div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Deals</div><div style="font-size:19px;font-weight:600;" id="comm-count-val">0</div></div>
           </div>
         </div>
       </div>
-      <div class="card" style="padding:14px 0;"><div class="ct" style="padding:0 18px 12px;"><div class="bar"></div>Deal-by-deal breakdown</div><div id="comm-rows"><div style="font-size:13px;color:var(--g400);padding:0 18px;">No deals with numeric values yet. Add a deal with a $ value to see projections.</div></div></div>
-      <div class="card"><div class="ct"><div class="bar"></div>Commission settings</div>
-        <div class="g3">
-          <div class="fg"><label>Default rate (%)</label><input type="number" id="def-rate" placeholder="6" value="6" oninput="renderCommission()"/></div>
-          <div class="fg"><label>Your split (%)</label><input type="number" id="def-split" placeholder="50" value="50" oninput="renderCommission()"/></div>
-        </div>
-        <div style="font-size:12px;color:var(--g600);">Applies to all deals. Archive a deal to move its commission to "Closed."</div>
-      </div>
+      <div class="card" style="padding:14px 0;"><div class="ct" style="padding:0 18px 12px;"><div class="bar"></div>Deal-by-deal breakdown</div><div id="comm-rows"><div style="font-size:13px;color:var(--g400);padding:0 18px 6px;">No deals with numeric values yet.</div></div></div>
+      <div class="card"><div class="ct"><div class="bar"></div>Commission settings</div><div class="g3"><div class="fg"><label>Default rate (%)</label><input type="number" id="def-rate" placeholder="6" value="6" oninput="renderCommission()"/></div><div class="fg"><label>Your split (%)</label><input type="number" id="def-split" placeholder="50" value="50" oninput="renderCommission()"/></div></div><div style="font-size:12px;color:var(--g600);">Applies to all deals. Archive a deal to move its commission to Closed.</div></div>
     </div>
 
-    <!-- ════ EMAIL DRAFTER ════ -->
+    <!-- ═══ EMAIL DRAFTER ═════════════════════════ -->
     <div id="panel-email" class="panel">
-      <div class="ph"><h2>Email &amp; Message Drafter</h2><p>AI writes deal-aware emails using your active deal's details — parties, price, property, and stage. Pick a template or describe what you need.</p></div>
-      <div class="g2" style="gap:13px;align-items:start;">
+      <div class="ph"><h2>Email &amp; Message Drafter</h2><p>AI writes deal-aware emails using your active deal's details. Pick a template or describe what you need.</p></div>
+      <div class="g2" style="gap:14px;align-items:start;">
         <div>
-          <div class="card"><div class="ct"><div class="bar"></div>Email templates</div><div id="email-templates"></div></div>
+          <div class="card"><div class="ct"><div class="bar"></div>Templates</div><div id="email-templates"></div></div>
           <div class="card">
             <div class="ct"><div class="bar"></div>Custom request</div>
-            <div class="fg"><label>Describe what you need</label><textarea id="email-custom" style="min-height:70px;" placeholder="e.g. Follow up to seller after no response to our LOI for 3 days..."></textarea></div>
+            <div class="fg"><label>Describe what you need</label><textarea id="email-custom" style="min-height:72px;" placeholder="e.g. Follow up to seller after no LOI response for 3 days..."></textarea></div>
             <div class="fg"><label>Tone</label><select id="email-tone"><option value="professional">Professional &amp; formal</option><option value="friendly">Friendly &amp; warm</option><option value="urgent">Urgent &amp; direct</option><option value="firm">Firm &amp; assertive</option></select></div>
             <button class="btn btn-teal btn-sm" onclick="draftCustomEmail()">Draft this email</button>
           </div>
@@ -817,52 +1034,46 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
       </div>
     </div>
 
-    <!-- ════ COMPLIANCE CHECKLIST ════ -->
-    <div id="panel-compliance" class="panel">
-      <div class="ph"><h2>Florida Pre-Closing Compliance</h2><p>A dynamic checklist of every Florida-specific requirement for your deal type. Updates automatically when you switch deals.</p></div>
-      <div id="comp-no-deal" class="card" style="text-align:center;padding:30px;"><div style="font-size:32px;margin-bottom:10px;">✅</div><div style="font-size:15px;font-weight:600;color:var(--teal-dark);margin-bottom:6px;">No active deal selected</div><div style="font-size:13px;color:var(--g600);">Select or create a deal to see its compliance checklist.</div></div>
-      <div id="comp-content" style="display:none;">
-        <div class="g2" style="gap:13px;align-items:start;">
-          <div>
-            <div class="card" style="padding:14px 0;">
-              <div class="ct" style="padding:0 18px 8px;justify-content:space-between;"><div style="display:flex;align-items:center;gap:7px;"><div class="bar"></div>Pre-closing checklist</div><span id="comp-label" class="pill p-teal">0 / 0 done</span></div>
-              <div class="comp-progress" style="margin:0 18px 10px;"><div class="comp-progress-bar" id="comp-bar" style="width:0%"></div></div>
-              <div id="comp-list"></div>
-            </div>
+    <!-- ═══ NOTES & GLOSSARY ══════════════════════ -->
+    <div id="panel-notes" class="panel">
+      <div class="ph"><h2>Notes &amp; Glossary</h2><p>Deal-specific notes synced with the dashboard, plus a full Florida CRE reference glossary.</p></div>
+      <div class="g2" style="gap:14px;align-items:start;">
+        <div>
+          <div class="notes-wrap">
+            <div class="notes-hdr"><span>Deal notes</span><button class="btn btn-xs" style="background:rgba(255,255,255,.09);color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.13);" onclick="clearNotes()">Clear</button></div>
+            <textarea id="notes-ta" placeholder="Type notes here — synced with dashboard...&#10;&#10;Client preferences, property details, negotiation points, follow-ups..."></textarea>
+            <div class="notes-ftr"><span id="notes-ct">0 characters</span><button class="btn btn-xs btn-out" onclick="copyNotes()">Copy all</button></div>
           </div>
-          <div>
-            <div class="card"><div class="ct"><div class="bar"></div>Florida-specific warnings</div><div id="comp-warnings" style="font-size:13px;color:var(--g600);line-height:1.85;"></div></div>
-            <div class="card" style="background:var(--teal-dark);border-color:var(--teal-dark);">
-              <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.65);margin-bottom:9px;">Reset checklist</div>
-              <div style="font-size:12px;color:rgba(255,255,255,.45);margin-bottom:10px;">Reset all items to unchecked for this deal.</div>
-              <button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.15);" onclick="resetCompliance()">Reset</button>
-            </div>
-          </div>
+        </div>
+        <div>
+          <div class="card"><div class="ct"><div class="bar"></div>Florida CRE glossary</div><div id="cheat-list"></div></div>
         </div>
       </div>
     </div>
 
+  </div><!-- /content -->
+</div><!-- /main -->
 
-<!-- DEAL MODAL -->
+<!-- ══════════════════════════════════════════════
+     DEAL MODAL
+══════════════════════════════════════════════ -->
 <div class="overlay" id="deal-overlay">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal()">×</button>
-    <h3 id="m-title">Create new deal</h3>
-    <p id="m-desc">Fill in the details — you can edit everything later.</p>
+    <div class="modal-hdr">
+      <div><h3 id="m-title">Create new deal</h3><p id="m-desc">Fill in the details — you can edit everything later.</p></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
     <input type="hidden" id="m-eid"/>
     <div class="g2">
       <div class="fg" style="grid-column:1/-1;"><label>Deal name / property</label><input type="text" id="m-name" placeholder="e.g. Westshore Retail Suite 200 · Tampa FL"/></div>
-      <div class="fg"><label>Deal type</label>
-        <select id="m-type"><option>Sale</option><option>Lease</option><option>Listing</option><option>LOI</option><option>Buyer Rep</option></select></div>
-      <div class="fg"><label>Property type</label>
-        <select id="m-ptype"><option>Office</option><option>Retail</option><option>Restaurant / Bar</option><option>Industrial</option><option>Franchise</option><option>Service business</option><option>Land</option><option>Multifamily</option><option>Hotel</option><option>Self Storage</option></select></div>
-      <div class="fg"><label>Status</label>
-        <select id="m-status"><option value="active">Active</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div>
+      <div class="fg"><label>Deal type</label><select id="m-type"><option>Sale</option><option>Lease</option><option>Listing</option><option>LOI</option><option>Buyer Rep</option></select></div>
+      <div class="fg"><label>Property type</label><select id="m-ptype"><option>Office</option><option>Retail</option><option>Restaurant / Bar</option><option>Industrial</option><option>Franchise</option><option>Service business</option><option>Land</option><option>Multifamily</option><option>Hotel</option><option>Self Storage</option></select></div>
+      <div class="fg"><label>Status</label><select id="m-status"><option value="active">Active</option><option value="draft">Draft</option></select></div>
       <div class="fg"><label>Value / Rent</label><input type="text" id="m-value" placeholder="$1,200,000  or  $8,500/mo"/></div>
-      <div class="fg"><label>Client / Parties</label><input type="text" id="m-client" placeholder="Buyer: ABC LLC · Seller: XYZ Inc."/></div>
+      <div class="fg" style="grid-column:1/-1;"><label>Client / Parties</label><input type="text" id="m-client" placeholder="Buyer: ABC LLC · Seller: XYZ Inc."/></div>
       <div class="fg"><label>Target close / deadline</label><input type="date" id="m-date"/></div>
     </div>
-    <div class="fg"><label>Notes</label><textarea id="m-notes" style="min-height:55px;" placeholder="Early notes about this deal..."></textarea></div>
+    <div class="fg"><label>Notes</label><textarea id="m-notes" style="min-height:58px;" placeholder="Early notes about this deal..."></textarea></div>
     <div class="btn-group">
       <button class="btn btn-teal" id="m-save" onclick="saveDeal()">Create deal</button>
       <button class="btn btn-out" onclick="closeModal()">Cancel</button>
@@ -872,18 +1083,105 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--g800
 
 <!-- CONFIRM MODAL -->
 <div class="overlay" id="confirm-overlay">
-  <div class="modal" style="max-width:360px;text-align:center;">
-    <div id="confirm-msg" style="font-size:14px;color:var(--g800);margin:8px 0 16px;"></div>
-    <div class="btn-group" style="justify-content:center;">
-      <button class="btn btn-danger" id="confirm-yes">Yes, delete</button>
-      <button class="btn btn-out" onclick="document.getElementById('confirm-overlay').classList.remove('open')">Cancel</button>
+  <div class="modal" style="max-width:360px;">
+    <div class="confirm-body">
+      <div class="confirm-icon">🗑️</div>
+      <div class="confirm-msg" id="confirm-msg"></div>
+      <div class="btn-group" style="justify-content:center;">
+        <button class="btn btn-danger" id="confirm-yes">Yes, delete</button>
+        <button class="btn btn-out" onclick="document.getElementById('confirm-overlay').classList.remove('open')">Cancel</button>
+      </div>
     </div>
   </div>
 </div>
 
 <div id="toast"></div>
 
+
 <script>
+
+// ════════════════════════════
+//  SIDEBAR COLLAPSE
+// ════════════════════════════
+function toggleSidebar(){
+  const sb = document.getElementById('sb');
+  const main = document.getElementById('main');
+  sb.classList.toggle('collapsed');
+  main.classList.toggle('expanded');
+  localStorage.setItem('sb_collapsed', sb.classList.contains('collapsed'));
+}
+
+function initSidebar(){
+  if(localStorage.getItem('sb_collapsed')==='true'){
+    document.getElementById('sb').classList.add('collapsed');
+    document.getElementById('main').classList.add('expanded');
+  }
+}
+
+
+
+// ════════════════════════════════════════════════════
+//  PERSISTENCE  (localStorage, auto-save on every change)
+// ════════════════════════════════════════════════════
+const LS_KEY = 'dealdesk_v5';
+
+function saveState(){
+  try {
+    const payload = {
+      deals: deals.map(d => ({
+        ...d,
+        clauses: [...d.clauses]          // Set → Array for JSON
+      })),
+      activeDealId,
+      dealCounter,
+      docStatus,
+      customDocs,
+      compStatus
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(payload));
+  } catch(e) { console.warn('DealDesk save failed:', e); }
+}
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const p = JSON.parse(raw);
+    deals = (p.deals || []).map(d => ({
+      ...d,
+      clauses: new Set(d.clauses || [])  // Array → Set
+    }));
+    activeDealId = p.activeDealId || null;
+    dealCounter  = p.dealCounter  || (deals.length + 1);
+    docStatus    = p.docStatus    || {};
+    customDocs   = p.customDocs   || {};
+    compStatus   = p.compStatus   || {};
+    // Restore selected clauses for active deal
+    const ad = deals.find(x => x.id === activeDealId);
+    if (ad) selectedClauses = new Set(ad.clauses);
+    return true;
+  } catch(e) {
+    console.warn('DealDesk load failed:', e);
+    return false;
+  }
+}
+
+function clearAllData(){
+  if(!confirm('Delete ALL deals and data permanently? This cannot be undone.')) return;
+  localStorage.removeItem(LS_KEY);
+  deals = []; activeDealId = null; dealCounter = 1;
+  selectedClauses = new Set(); docStatus = {}; customDocs = {}; compStatus = {};
+  refreshAll(); updateStats(); resetActiveUI();
+  toast('All data cleared.');
+}
+
+// ════════════════════════════
+//  CONFIG
+// ════════════════════════════
+// Point this at your Render proxy URL once deployed.
+// During local dev, it falls back to direct browser access.
+const PROXY_URL = 'https://dealdesk-proxy.onrender.com/api/chat';
+
 // ════════════════════════════
 //  STATE
 // ════════════════════════════
@@ -945,7 +1243,7 @@ function saveDeal(){
     if(d.status==='active') switchDeal(d.id);
     toast('Deal created: '+name);
   }
-  closeModal();
+  saveState(); closeModal();
   refreshAll();
 }
 
@@ -965,7 +1263,7 @@ function saveDealState(){
 }
 
 function switchDeal(id){
-  saveDealState();
+  saveDealState(); saveState();
   const d = deals.find(x=>x.id===id);
   if(!d) return;
   activeDealId = id;
@@ -989,7 +1287,7 @@ function switchDeal(id){
   const sl = document.getElementById('stat-loi'); if(sl) sl.textContent = d.loiDone ? 'Generated' : 'Not started';
   // Reset LOI output so stale output from other deal doesn't show
   const lo = document.getElementById('loi-out'); if(lo && !d.loiDone) lo.innerHTML='<div style="font-size:13px;color:var(--g400);">Your LOI will appear here once generated.</div>';
-  refreshAll(); updateStats(); updateLOINote(); renderSelTags();
+  refreshAll(); updateStats(); updateLOINote(); saveState(); renderSelTags();
   // Re-render active panel
   const panels = ['clauses','health','docs','compliance','commission','email'];
   panels.forEach(p=>{ if(document.getElementById('panel-'+p)?.classList.contains('active')){
@@ -1007,17 +1305,17 @@ function archiveDeal(id){
   const d=deals.find(x=>x.id===id); if(!d) return;
   d.status='archived';
   if(activeDealId===id) resetActiveUI();
-  refreshAll(); toast('Archived: '+d.name);
+  refreshAll(); saveState(); toast('Archived: '+d.name);
 }
 function draftDeal(id){
   const d=deals.find(x=>x.id===id); if(!d) return;
   d.status='draft';
   if(activeDealId===id) resetActiveUI();
-  refreshAll(); toast('Moved to drafts: '+d.name);
+  refreshAll(); saveState(); toast('Moved to drafts: '+d.name);
 }
 function reactivate(id){
   const d=deals.find(x=>x.id===id); if(!d) return;
-  d.status='active'; switchDeal(id); toast('Reactivated: '+d.name);
+  d.status='active'; switchDeal(id); saveState(); toast('Reactivated: '+d.name);
 }
 function confirmDelete(id){
   const d=deals.find(x=>x.id===id); if(!d) return;
@@ -1029,7 +1327,7 @@ function doDelete(id){
   const d=deals.find(x=>x.id===id); if(!d) return;
   const nm=d.name; deals=deals.filter(x=>x.id!==id);
   if(activeDealId===id) resetActiveUI();
-  refreshAll(); toast('Deleted: '+nm);
+  refreshAll(); saveState(); toast('Deleted: '+nm);
 }
 function resetActiveUI(){
   activeDealId=null; selectedClauses=new Set();
@@ -1113,7 +1411,8 @@ function renderDashPipe(){
 // ════════════════════════════
 const PANELS=['dashboard','wizard','clauses','loi','explainer','calc','tracker','health','docs','commission','email','compliance','notes'];
 const TITLES={dashboard:'Dashboard',wizard:'Contract Wizard',clauses:'Terms & Contingencies',loi:'LOI Generator',explainer:'Clause Explainer',calc:'Deal Calculator',tracker:'Pipeline Tracker',health:'Deal Health & Red Flags',docs:'Document Vault',commission:'Commission Tracker',email:'Email Drafter',compliance:'Florida Compliance',notes:'Notes & Glossary'};
-function goPanel(n){
+function goPanel(n,e){
+  if(e) e.preventDefault();
   PANELS.forEach(p=>document.getElementById('panel-'+p)?.classList.remove('active'));
   document.querySelectorAll('.nav-a').forEach(el=>el.classList.remove('act'));
   document.getElementById('panel-'+n)?.classList.add('active');
@@ -1126,6 +1425,7 @@ function goPanel(n){
   if(n==='compliance') renderCompliance();
   if(n==='email') renderEmailTemplates();
   updateLOINote();
+  const ca=document.getElementById('content-area'); if(ca) ca.scrollTop=0;
 }
 function switchTracker(tabId){
   document.querySelectorAll('#panel-tracker .stab').forEach(b=>b.classList.remove('act'));
@@ -1143,7 +1443,7 @@ function switchCalc(name){
 }
 
 // ── Clock
-function tick(){ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+function tick(){ document.getElementById('tb-clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
 setInterval(tick,1000); tick();
 
 // ════════════════════════════
@@ -1369,9 +1669,9 @@ async function genClauses(){
   out.innerHTML='<div class="loading"><div class="spinner"></div>Formatting Florida-standard clause language...</div>';
   const list=[...selectedClauses].map(id=>{ const c=CLAUSES.find(x=>x.id===id); return c?`[${c.name}]:\n${c.text}`:''; }).filter(Boolean).join('\n\n');
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:`You are a Florida CRE and BBF business broker assistant. Format these clauses into a numbered TERMS AND CONTINGENCIES section. Keep all [PLACEHOLDERS]. After each heading add a brief note about what to fill in. Florida law governs.\n\n${list}`}]})});
+    const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:`You are a Florida CRE and BBF business broker assistant. Format these clauses into a numbered TERMS AND CONTINGENCIES section. Keep all [PLACEHOLDERS]. After each heading add a brief note about what to fill in. Florida law governs.\n\n${list}`}]})});
     const d=await r.json(); const text=d.content?.map(b=>b.text||'').join('')||'Error.';
-    out.innerHTML=`<div class="obox" id="clause-text">${text}</div><div class="btn-group"><button class="btn btn-xs btn-out" onclick="copyEl('clause-text')">Copy</button><button class="btn btn-xs btn-teal" onclick="goPanel('loi')">Use in LOI →</button></div>`;
+    out.innerHTML=`<div class="obox" id="clause-text">${text}</div><div class="btn-group"><button class="btn btn-xs btn-out" onclick="copyEl('clause-text')">Copy</button><button class="btn btn-xs btn-teal" onclick="goPanel('loi',event)">Use in LOI →</button></div>`;
   }catch(e){ out.innerHTML='<p style="font-size:12px;color:var(--plum);margin-top:8px;">Connection error — try again.</p>'; }
 }
 
@@ -1393,13 +1693,14 @@ async function buildLOI(){
     d.loiTerm=document.getElementById('loi-term').value||'';
     d.loiSqft=document.getElementById('loi-sqft').value||'';
     d.loiNotes=document.getElementById('loi-notes').value||'';
-    d.loiDone=true; }
+    d.loiDone=true; saveState(); }
   const cb=selectedClauses.size?'Include these Florida BBF Terms and Contingencies:\n'+[...selectedClauses].map(id=>{ const c=CLAUSES.find(x=>x.id===id); return c?`- ${c.name}: ${c.text}`:''; }).filter(Boolean).join('\n'):'';
   const prompt=`Draft a professional Florida commercial real estate / BBF business sale Letter of Intent. Formal letter format. Use [DATE] as today's date.\n\nDeal:\n- Subject: ${addr} (${ptype}${sqft?', '+sqft:''})\n- ${trans==='lease'?'Tenant':'Buyer'}: ${buyer}\n- ${trans==='lease'?'Landlord':'Seller'}: ${seller}\n- ${trans==='lease'?'Proposed rent':'Purchase price'}: ${price}\n- ${trans==='lease'?'Lease term':'Closing timeline'}: ${term||'TBD'}\n${notes?'- Additional: '+notes:''}\n${cb}\n\nInclude: non-binding disclaimer, due diligence period, confidentiality, offer expiration. Use [AGENT NAME] as signing placeholder. Professional, complete, ready to send.`;
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:prompt}]})});
+    const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:prompt}]})});
     const rd=await r.json(); const text=rd.content?.map(b=>b.text||'').join('')||'Error.';
-    out.innerHTML=`<div class="obox" id="loi-text">${text}</div><div class="btn-group"><button class="btn btn-sm btn-out" onclick="copyEl('loi-text')">Copy LOI</button><button class="btn btn-sm btn-teal" onclick="printLOI()">Print / Save PDF</button></div>`;
+    out.innerHTML='<div class="obox" id="loi-text">'+text+'</div>'+'<div class="btn-group"><button class="btn btn-sm btn-out" onclick="copyEl('+"'loi-text'"+')">Copy LOI</button><button class="btn btn-sm btn-teal" onclick="printLOI()">Print / Save PDF</button></div>';
+    const lcb=document.getElementById('loi-copy-btn'); if(lcb) lcb.style.display='inline-flex';
     document.getElementById('stat-loi').textContent='Generated'; toast('LOI generated!');
   }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;margin-top:8px;">Connection error — try again.</p>'; document.getElementById('stat-loi').textContent='Error'; }
 }
@@ -1428,7 +1729,7 @@ async function explainClause(){
   const out=document.getElementById('exp-out');
   out.innerHTML='<div class="loading"><div class="spinner"></div>Reading the clause...</div>';
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,messages:[{role:'user',content:`You are a plain-English translator for Florida CRE and BBF contracts. Explain in 3 parts (under 180 words total):\n\n1. WHAT IT MEANS — plain English, like talking to a smart non-lawyer\n2. WHY IT MATTERS — who it protects and why it exists\n3. WATCH OUT FOR — what the broker or client should be careful about\n\nClause:\n${clause}`}]})});
+    const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,messages:[{role:'user',content:`You are a plain-English translator for Florida CRE and BBF contracts. Explain in 3 parts (under 180 words total):\n\n1. WHAT IT MEANS — plain English, like talking to a smart non-lawyer\n2. WHY IT MATTERS — who it protects and why it exists\n3. WATCH OUT FOR — what the broker or client should be careful about\n\nClause:\n${clause}`}]})});
     const d=await r.json(); const text=d.content?.map(b=>b.text||'').join('')||'Error.';
     out.innerHTML=`<div style="font-size:13px;line-height:1.8;color:var(--g800);">${text.split('\n').join('<br/>')}</div>`;
   }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">Connection error — try again.</p>'; }
@@ -1488,9 +1789,9 @@ function calcNNN(){
 function syncDashNotes(v){
   const ta=document.getElementById('notes-ta'); if(ta) ta.value=v;
   const ct=document.getElementById('notes-ct'); if(ct) ct.textContent=v.length+' characters';
-  const d=deals.find(x=>x.id===activeDealId); if(d) d.dealNotes=v;
+  const d=deals.find(x=>x.id===activeDealId); if(d){ d.dealNotes=v; saveState(); }
 }
-function clearNotes(){ document.getElementById('notes-ta').value=''; document.getElementById('dash-notes').value=''; document.getElementById('notes-ct').textContent='0 characters'; }
+function clearNotes(){ document.getElementById('notes-ta').value=''; document.getElementById('dash-notes').value=''; document.getElementById('notes-ct').textContent='0 characters'; const dn=deals.find(x=>x.id===activeDealId); if(dn){ dn.dealNotes=''; saveState(); } }
 function copyNotes(){ navigator.clipboard.writeText(document.getElementById('notes-ta').value).then(()=>toast('Notes copied!')); }
 document.getElementById('notes-ta').addEventListener('input',function(){
   const ct=document.getElementById('notes-ct'); if(ct) ct.textContent=this.value.length+' characters';
@@ -1582,7 +1883,7 @@ Flag types: "critical" = must fix before proceeding, "warning" = should address,
 Be Florida-specific. Check for: missing contingencies for this property type, unsigned agreements that FL law requires (§475 Buyer Rep), DABT license for restaurants/bars, franchisor approval for franchises, SBA contingency if value suggests financing needed, non-compete for business sales, missing LOI non-binding disclaimer, earnest money terms, due diligence period. Score 0-100.`;
 
   try{
-    const r = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
+    const r = await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
     const rd = await r.json();
     const raw = rd.content?.map(b=>b.text||'').join('')||'{}';
     let result;
@@ -1759,7 +2060,7 @@ function toggleDocIdx(idx){
   const doc = window._currentDocSet[idx]; if(!doc) return;
   const sk = doc.name.replace(/[^a-zA-Z0-9_]/g,'_');
   docStatus[key][sk] = docStatus[key][sk]==='done'?'pending':'done';
-  renderDocs();
+  saveState(); renderDocs();
 }
 function toggleDoc(name){
   const key = activeDealId; if(!key) return;
@@ -1780,7 +2081,7 @@ function addCustomDoc(){
 function removeCustomDocIdx(idx){
   const key = activeDealId; if(!key||!window._currentDocSet) return;
   const doc = window._currentDocSet[idx]; if(!doc||!doc.custom) return;
-  customDocs[key] = (customDocs[key]||[]).filter(n=>n!==doc.name); renderDocs();
+  customDocs[key] = (customDocs[key]||[]).filter(n=>n!==doc.name); saveState(); renderDocs();
 }
 function removeCustomDoc(name){
   const key = activeDealId; if(!key) return;
@@ -1840,11 +2141,11 @@ function renderEmailTemplates(){
   const el = document.getElementById('email-templates');
   if(!el) return;
   el.innerHTML = EMAIL_TEMPLATES.map((t,i)=>`
-    <button class="email-template-btn" onclick="draftEmail(${i})">
-      <span class="etb-icon">${t.icon}</span>
+    <button class="etmpl" onclick="draftEmail(${i})">
+      <span class="etmpl-icon">${t.icon}</span>
       <div style="flex:1;text-align:left;">
-        <div class="etb-lbl">${t.label}</div>
-        <div class="etb-desc">${t.desc}</div>
+        <div class="etmpl-lbl">${t.label}</div>
+        <div class="etmpl-desc">${t.desc}</div>
       </div>
     </button>`).join('');
 }
@@ -1877,9 +2178,10 @@ async function doEmailDraft(prompt){
   out.innerHTML='<div class="loading"><div class="spinner"></div>Writing your email...</div>';
   document.getElementById('copy-email-btn').style.display='none';
   try{
-    const r = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:prompt}]})});
+    const r = await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:prompt}]})});
     const rd = await r.json(); const text = rd.content?.map(b=>b.text||'').join('')||'Error.';
     out.innerHTML='<div class="email-out" id="email-result-inner">'+text.split('\n').join('<br/>')+'</div>';
+    document.getElementById('copy-email-btn').style.display='inline-flex';
     document.getElementById('copy-email-btn').style.display='inline-flex';
   }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">Connection error — try again.</p>'; }
 }
@@ -2043,7 +2345,26 @@ function resetCompliance(){
 
 
 // ── INIT
-renderClauses(); renderSelTags(); renderEmailTemplates();
+initSidebar();
+const hadData = loadState();
+if(hadData && activeDealId){
+  const ad = deals.find(x=>x.id===activeDealId);
+  if(ad){
+    const chip=document.getElementById('deal-chip'); if(chip){ chip.textContent=ad.name; chip.className='on'; }
+    const sd=document.getElementById('stat-deal'); if(sd) sd.textContent=ad.name;
+    const sl=document.getElementById('stat-loi'); if(sl) sl.textContent=ad.loiDone?'Generated':'Not started';
+    // Restore LOI fields
+    const flds={'loi-addr':ad.loiAddr||'','loi-buyer':ad.loiBuyer||'','loi-seller':ad.loiSeller||'','loi-price':ad.loiPrice||'','loi-term':ad.loiTerm||'','loi-sqft':ad.loiSqft||'','loi-notes':ad.loiNotes||''};
+    Object.entries(flds).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value=val; });
+    // Restore notes
+    const nt=document.getElementById('notes-ta'); if(nt) nt.value=ad.dealNotes||'';
+    const dn=document.getElementById('dash-notes'); if(dn) dn.value=ad.dealNotes||'';
+    const ct=document.getElementById('notes-ct'); if(ct) ct.textContent=(ad.dealNotes||'').length+' characters';
+  }
+}
+renderClauses(); renderSelTags(); renderEmailTemplates(); refreshAll(); updateStats();
+if(hadData && deals.length) toast('Welcome back — ' + deals.filter(d=>d.status!=='archived').length + ' deals loaded.');
+
 </script>
 </body>
 </html>
