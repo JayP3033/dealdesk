@@ -662,6 +662,7 @@ body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(-
       <div class="topbar-title" id="page-title">Dashboard</div>
     </div>
     <div class="tb-right">
+      <button onclick="(function(){ const k=prompt('Anthropic API key (sk-ant-...):\n\nGet one free at console.anthropic.com',''); if(k&&k.startsWith('sk-')){setApiKey(k);}else if(k){toast('Invalid key — must start with sk-ant-');} })()" title="Set API key" style="background:none;border:1px solid var(--g200);border-radius:6px;padding:4px 9px;font-size:11px;color:var(--g600);cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;" onmouseover="this.style.borderColor='var(--teal)';this.style.color='var(--teal)'" onmouseout="this.style.borderColor='var(--g200)';this.style.color='var(--g600)'">🔑 API Key</button>
       <span id="deal-chip" onclick="goPanel('tracker',event)" title="Active deal — click to open pipeline">No active deal</span>
       <span id="tb-clock"></span>
     </div>
@@ -1178,30 +1179,32 @@ function clearAllData(){
 // ════════════════════════════
 //  CONFIG
 // ════════════════════════════
-// ▼▼▼ PASTE YOUR RENDER URL HERE ▼▼▼
-// Go to Render → your service → copy the URL → paste below replacing the placeholder
-// Example: 'https://dealdesk-proxy-xxxx.onrender.com/api/chat'
-const PROXY_URL = 'https://dealdesk-proxy.onrender.com/api/chat';
-
-// Call testProxy() in the browser console (F12) to debug connection issues
-async function testProxy(){
-  console.log('Testing proxy at:', PROXY_URL);
-  try {
-    const r = await fetch(PROXY_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:10,messages:[{role:'user',content:'Say OK'}]})
-    });
-    const d = await r.json();
-    console.log('Proxy response:', d);
-    if(d.content) toast('✅ Proxy working!');
-    else toast('⚠️ Proxy error: ' + JSON.stringify(d));
-  } catch(e) {
-    console.error('Proxy test failed:', e);
-    toast('❌ ' + e.message);
-  }
+// ══ API KEY — stored locally, never sent anywhere except Anthropic ══
+function getApiKey(){ return localStorage.getItem('dd_api_key')||''; }
+function setApiKey(k){ localStorage.setItem('dd_api_key',k.trim()); toast('API key saved!'); }
+function promptApiKey(){
+  const k = prompt('Enter your Anthropic API key (starts with sk-ant-):\n\nGet one free at console.anthropic.com → API Keys','');
+  if(k && k.startsWith('sk-')) { setApiKey(k); return k; }
+  if(k) toast('That doesn\'t look like a valid key — should start with sk-ant-');
+  return '';
 }
-// ▲▲▲ RENDER URL ▲▲▲
+async function aiCall(messages, max_tokens=1000){
+  let key = getApiKey();
+  if(!key){ key = promptApiKey(); if(!key) throw new Error('No API key — enter your key when prompted'); }
+  const r = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens, messages})
+  });
+  if(!r.ok){ const err=await r.json(); throw new Error(err.error?.message||('HTTP '+r.status)); }
+  const d = await r.json();
+  return d.content?.map(b=>b.text||'').join('')||'';
+}
 
 // ════════════════════════════
 //  STATE
@@ -1690,10 +1693,9 @@ async function genClauses(){
   out.innerHTML='<div class="loading"><div class="spinner"></div>Formatting Florida-standard clause language...</div>';
   const list=[...selectedClauses].map(id=>{ const c=CLAUSES.find(x=>x.id===id); return c?`[${c.name}]:\n${c.text}`:''; }).filter(Boolean).join('\n\n');
   try{
-    const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:`You are a Florida CRE and BBF business broker assistant. Format these clauses into a numbered TERMS AND CONTINGENCIES section. Keep all [PLACEHOLDERS]. After each heading add a brief note about what to fill in. Florida law governs.\n\n${list}`}]})});
-    const d=await r.json(); const text=d.content?.map(b=>b.text||'').join('')||'Error.';
+    const text=await aiCall([{role:'user',content:`You are a Florida CRE and BBF business broker assistant. Format these clauses into a numbered TERMS AND CONTINGENCIES section. Keep all [PLACEHOLDERS]. After each heading add a brief note about what to fill in. Florida law governs.\n\n${list}`}],1400);
     out.innerHTML=`<div class="obox" id="clause-text">${text}</div><div class="btn-group"><button class="btn btn-xs btn-out" onclick="copyEl('clause-text')">Copy</button><button class="btn btn-xs btn-teal" onclick="goPanel('loi',event)">Use in LOI →</button></div>`;
-  }catch(e){ out.innerHTML='<p style="font-size:12px;color:var(--plum);margin-top:8px;">⚠️ Error: '+e.message+'</p>'; console.error('AI call failed:',e); }
+  }catch(e){ out.innerHTML='<p style="font-size:12px;color:var(--plum);margin-top:8px;">⚠️ '+( e.message==='No API key — enter your key when prompted' ? 'Click an AI button and enter your Anthropic API key when prompted.' : 'Error: '+e.message)+'</p>'; console.error('AI call failed:',e); }
 }
 
 // ════════════════════════════
@@ -1718,12 +1720,11 @@ async function buildLOI(){
   const cb=selectedClauses.size?'Include these Florida BBF Terms and Contingencies:\n'+[...selectedClauses].map(id=>{ const c=CLAUSES.find(x=>x.id===id); return c?`- ${c.name}: ${c.text}`:''; }).filter(Boolean).join('\n'):'';
   const prompt=`Draft a professional Florida commercial real estate / BBF business sale Letter of Intent. Formal letter format. Use [DATE] as today's date.\n\nDeal:\n- Subject: ${addr} (${ptype}${sqft?', '+sqft:''})\n- ${trans==='lease'?'Tenant':'Buyer'}: ${buyer}\n- ${trans==='lease'?'Landlord':'Seller'}: ${seller}\n- ${trans==='lease'?'Proposed rent':'Purchase price'}: ${price}\n- ${trans==='lease'?'Lease term':'Closing timeline'}: ${term||'TBD'}\n${notes?'- Additional: '+notes:''}\n${cb}\n\nInclude: non-binding disclaimer, due diligence period, confidentiality, offer expiration. Use [AGENT NAME] as signing placeholder. Professional, complete, ready to send.`;
   try{
-    const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1600,messages:[{role:'user',content:prompt}]})});
-    const rd=await r.json(); const text=rd.content?.map(b=>b.text||'').join('')||'Error.';
+    const text=await aiCall([{role:'user',content:prompt}],1600);
     out.innerHTML='<div class="obox" id="loi-text">'+text+'</div>'+'<div class="btn-group"><button class="btn btn-sm btn-out" onclick="copyEl('+"'loi-text'"+')">Copy LOI</button><button class="btn btn-sm btn-teal" onclick="printLOI()">Print / Save PDF</button></div>';
     const lcb=document.getElementById('loi-copy-btn'); if(lcb) lcb.style.display='inline-flex';
     document.getElementById('stat-loi').textContent='Generated'; toast('LOI generated!');
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;margin-top:8px;">⚠️ Error: '+e.message+'</p>'; document.getElementById('stat-loi').textContent='Error'; console.error('AI call failed:',e); }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;margin-top:8px;">⚠️ '+( e.message==='No API key — enter your key when prompted' ? 'Click an AI button and enter your Anthropic API key when prompted.' : 'Error: '+e.message)+'</p>'; document.getElementById('stat-loi').textContent='Error'; console.error('AI call failed:',e); }
 }
 function printLOI(){
   const text=document.getElementById('loi-text')?.innerText||'';
@@ -1750,10 +1751,9 @@ async function explainClause(){
   const out=document.getElementById('exp-out');
   out.innerHTML='<div class="loading"><div class="spinner"></div>Reading the clause...</div>';
   try{
-    const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,messages:[{role:'user',content:`You are a plain-English translator for Florida CRE and BBF contracts. Explain in 3 parts (under 180 words total):\n\n1. WHAT IT MEANS — plain English, like talking to a smart non-lawyer\n2. WHY IT MATTERS — who it protects and why it exists\n3. WATCH OUT FOR — what the broker or client should be careful about\n\nClause:\n${clause}`}]})});
-    const d=await r.json(); const text=d.content?.map(b=>b.text||'').join('')||'Error.';
+    const text=await aiCall([{role:'user',content:`You are a plain-English translator for Florida CRE and BBF contracts. Explain in 3 parts (under 180 words total):\\n\\n1. WHAT IT MEANS — plain English, like talking to a smart non-lawyer\\n2. WHY IT MATTERS — who it protects and why it exists\\n3. WATCH OUT FOR — what the broker or client should be careful about\\n\\nClause:\\n${clause}`}],700)
     out.innerHTML=`<div style="font-size:13px;line-height:1.8;color:var(--g800);">${text.split('\n').join('<br/>')}</div>`;
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ Error: '+e.message+'</p>'; console.error('AI call failed:',e); }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ '+( e.message==='No API key — enter your key when prompted' ? 'Click an AI button and enter your Anthropic API key when prompted.' : 'Error: '+e.message)+'</p>'; console.error('AI call failed:',e); }
 }
 
 // ════════════════════════════
@@ -1904,9 +1904,7 @@ Flag types: "critical" = must fix before proceeding, "warning" = should address,
 Be Florida-specific. Check for: missing contingencies for this property type, unsigned agreements that FL law requires (§475 Buyer Rep), DABT license for restaurants/bars, franchisor approval for franchises, SBA contingency if value suggests financing needed, non-compete for business sales, missing LOI non-binding disclaimer, earnest money terms, due diligence period. Score 0-100.`;
 
   try{
-    const r = await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
-    const rd = await r.json();
-    const raw = rd.content?.map(b=>b.text||'').join('')||'{}';
+    const raw = await aiCall([{role:'user',content:prompt}],1200);
     let result;
     try{ result = JSON.parse(raw); } catch(e){ result = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
     const score = result.score||0;
@@ -2199,12 +2197,11 @@ async function doEmailDraft(prompt){
   out.innerHTML='<div class="loading"><div class="spinner"></div>Writing your email...</div>';
   document.getElementById('copy-email-btn').style.display='none';
   try{
-    const r = await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:prompt}]})});
-    const rd = await r.json(); const text = rd.content?.map(b=>b.text||'').join('')||'Error.';
+    const text = await aiCall([{role:'user',content:prompt}],600);
     out.innerHTML='<div class="email-out" id="email-result-inner">'+text.split('\n').join('<br/>')+'</div>';
     document.getElementById('copy-email-btn').style.display='inline-flex';
     document.getElementById('copy-email-btn').style.display='inline-flex';
-  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ Error: '+e.message+'</p>'; console.error('AI call failed:',e); }
+  }catch(e){ out.innerHTML='<p style="color:var(--plum);font-size:13px;">⚠️ '+( e.message==='No API key — enter your key when prompted' ? 'Click an AI button and enter your Anthropic API key when prompted.' : 'Error: '+e.message)+'</p>'; console.error('AI call failed:',e); }
 }
 
 // ════════════════════════════
@@ -2366,11 +2363,7 @@ function resetCompliance(){
 
 
 // ── INIT
-// Check proxy on load
-fetch(PROXY_URL.replace('/api/chat',''))
-  .then(r=>r.json())
-  .then(d=>{ if(d.status) console.log('✅ DealDesk proxy online'); })
-  .catch(()=>{ console.warn('⚠️ Proxy not reachable — AI features will not work until Render is deployed.'); });
+// API key stored in localStorage — user prompted on first AI use
 initSidebar();
 const hadData = loadState();
 if(hadData && activeDealId){
