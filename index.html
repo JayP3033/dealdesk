@@ -1661,24 +1661,33 @@ function updateLOINote(){
   el.textContent=selectedClauses.size?`✓ ${selectedClauses.size} Florida BBF clause(s) selected — included automatically in your LOI.`:'No clauses selected — add them in Terms & Clauses for a more complete LOI.';
 }
 
-async function genClauses(){
+function genClauses(){
   if(!selectedClauses.size){ alert('Select at least one clause first.'); return; }
   const out=document.getElementById('clause-output');
   const clauses=CLAUSES.filter(c=>selectedClauses.has(c.id));
-  let h='<div class="obox" id="clause-text" style="max-height:500px;overflow-y:auto;">';
-  h+='<div style="font-size:11px;font-weight:600;color:var(--teal-d);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">TERMS AND CONTINGENCIES</div>';
-  clauses.forEach((c,i)=>{
-    h+='<div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--g100);">';
-    h+='<div style="font-size:11.5px;font-weight:700;color:var(--teal-d);margin-bottom:6px;">'+(i+1)+'. '+c.name.toUpperCase()+'</div>';
-    h+='<div style="font-size:12.5px;line-height:1.8;color:var(--g800);">'+c.text+'</div>';
-    h+='</div>';
+  // Group by category
+  const cats={};
+  clauses.forEach(c=>{ if(!cats[c.cat]) cats[c.cat]=[]; cats[c.cat].push(c); });
+  let h='<div class="obox" id="clause-text" style="max-height:560px;overflow-y:auto;">';
+  h+='<div style="font-size:11px;font-weight:600;color:var(--teal-d);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">TERMS AND CONTINGENCIES</div>';
+  h+='<div style="font-size:11px;color:var(--g400);margin-bottom:16px;">'+clauses.length+' clause'+(clauses.length===1?'':'s')+' \u2014 '+Object.keys(cats).length+' categor'+(Object.keys(cats).length===1?'y':'ies')+'</div>';
+  let n=1;
+  Object.entries(cats).forEach(([cat,cs])=>{
+    h+='<div style="font-size:10px;font-weight:700;color:var(--teal-d);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--teal-d);">'+cat+'</div>';
+    cs.forEach(c=>{
+      h+='<div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--g100);">';
+      h+='<div style="font-size:11.5px;font-weight:700;color:var(--g900);margin-bottom:6px;">'+(n++)+'. '+c.name+'</div>';
+      h+='<div style="font-size:12.5px;line-height:1.8;color:var(--g800);margin-bottom:6px;">'+c.text+'</div>';
+      if(c.watchout) h+='<div style="font-size:11px;color:var(--plum);background:rgba(103,0,56,.04);padding:5px 8px;border-radius:5px;border-left:2px solid var(--plum);">\u26a0\ufe0f '+c.watchout+'</div>';
+      h+='</div>';
+    });
   });
   h+='</div>';
   h+='<div class="btn-group" style="margin-top:10px;">';
   h+='<button class="btn btn-sm btn-out" onclick="copyEl(\'clause-text\')">Copy all clauses</button>';
   h+='</div>';
   out.innerHTML=h;
-  toast(clauses.length+' clause'+(clauses.length===1?'':'s')+' formatted!');
+  toast(clauses.length+' clause'+(clauses.length===1?'':'s')+' formatted in '+Object.keys(cats).length+' categor'+(Object.keys(cats).length===1?'y':'ies')+'!');
 }
 
 function printLOI(){
@@ -1837,68 +1846,103 @@ document.addEventListener('keydown',e=>{
 // ════════════════════════════
 //  DEAL HEALTH & RED FLAGS
 // ════════════════════════════
-async function runHealthCheck(){
+function runHealthCheck(){
   const d = deals.find(x=>x.id===activeDealId);
   if(!d){ toast('No active deal \u2014 create or select one first.'); return; }
   const btn = document.getElementById('health-run-btn');
-  btn.textContent='Running...'; btn.disabled=true;
-  setTimeout(()=>{ btn.textContent='Run Health Check'; btn.disabled=false; },400);
+  btn.textContent='Checking...'; btn.disabled=true;
+  setTimeout(()=>{ btn.textContent='Run Health Check'; btn.disabled=false; },500);
+
   const flags = [];
   let score = 100;
-  const hasClauses = d.clauses ? d.clauses.size||[...d.clauses].length : 0;
-  const dealType = d.type||'Sale';
   const ptype = d.ptype||'Office';
-  // Score based on completeness
-  if(!d.value){ flags.push({sev:'high',msg:'No deal value entered \u2014 critical for commission calculations and LOI.'}); score-=15; }
-  if(!d.client){ flags.push({sev:'high',msg:'No client/parties listed \u2014 required for any formal document.'}); score-=10; }
-  if(!d.date){ flags.push({sev:'med',msg:'No target close date \u2014 helps prioritize and set expectations.'}); score-=5; }
-  if(!d.loiDone){ flags.push({sev:'med',msg:'LOI not yet generated \u2014 go to LOI Generator to create one.'}); score-=10; }
-  if(hasClauses===0){ flags.push({sev:'high',msg:'No clauses selected \u2014 your LOI has no protections or contingencies.'}); score-=20; }
-  else if(hasClauses<3){ flags.push({sev:'med',msg:'Only '+hasClauses+' clause(s) selected \u2014 consider adding more Florida-specific protections.'}); score-=8; }
-  // Deal-type specific checks
-  if(dealType==='Sale'||dealType==='LOI'){
-    const hasDueDil = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&c.name.toLowerCase().includes('due diligence'); });
-    if(!hasDueDil){ flags.push({sev:'high',msg:'No due diligence clause \u2014 essential for any Florida purchase transaction.'}); score-=12; }
-    const hasFinancing = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&(c.name.toLowerCase().includes('financ')||c.name.toLowerCase().includes('mortgage')); });
-    if(!hasFinancing){ flags.push({sev:'med',msg:'No financing contingency \u2014 consider adding if buyer is not paying cash.'}); score-=8; }
+  const dtype = d.type||'Sale';
+  const clauseIds = [...(d.clauses instanceof Set ? d.clauses : new Set(d.clauses||[]))];
+  const clauseObjs = clauseIds.map(id=>CLAUSES.find(c=>c.id===id)).filter(Boolean);
+  const cnames = clauseObjs.map(c=>c.name.toLowerCase());
+  const hasClause = (...keywords) => cnames.some(n=>keywords.some(k=>n.includes(k)));
+
+  const flag = (sev, msg, fix) => flags.push({sev, msg, fix:fix||null});
+
+  // ── Deal completeness ─────────────────────────────────────────
+  if(!d.value){ flag('high','No deal value entered — required for LOI, commission calc, and health scoring.','Open deal settings and add the price or rent amount.'); score-=12; }
+  if(!d.client){ flag('high','No client/parties listed — required for any formal document.','Add client name in deal settings.'); score-=8; }
+  if(!d.date){ flag('med','No target close date — important for timeline management.','Set a target close date in deal settings.'); score-=5; }
+  if(!d.loiDone){ flag('med','LOI not yet generated — go to LOI Generator when ready.', null); score-=8; }
+  if(clauseIds.length===0){ flag('high','No clauses selected — your deal has zero protections.','Go to Terms & Clauses and select relevant clauses.'); score-=20; }
+  else if(clauseIds.length<3){ flag('med','Only '+clauseIds.length+' clause(s) — consider adding more Florida protections.', null); score-=8; }
+
+  // ── Universal must-haves ──────────────────────────────────────
+  if(!hasClause('escrow','earnest')){ flag('med','No escrow/earnest money clause — how is the deposit handled?','Add clause 101: Escrow / earnest money terms.'); score-=6; }
+  if(!hasClause('closing date')){ flag('med','No closing date clause — when does this deal close?','Add clause 102: Closing date and extension rights.'); score-=5; }
+  if(!hasClause('broker','commission','fl §475')){ flag('low','No broker commission disclosure — required under FL §475.','Add clause 103: Broker commission disclosure.'); score-=4; }
+
+  // ── Sale / purchase specific ──────────────────────────────────
+  if(dtype==='Sale'||dtype==='LOI'){
+    if(!hasClause('due diligence','inspection period')){ flag('high','No due diligence clause — buyer has no formal inspection rights.','Add clause 302: Due diligence / inspection period.'); score-=12; }
+    if(!hasClause('financ','mortgage','sba','loan')){ flag('med','No financing contingency — what if the buyer can\'t get a loan?','Add clause 301: Financing contingency.'); score-=8; }
+    if(!hasClause('represent','warrant')){ flag('med','No seller representations & warranties — seller accountability gap.','Add clause 330: Seller representations & warranties.'); score-=6; }
+    if(!hasClause('indemnif')){ flag('low','No indemnification clause — who covers post-closing surprises?','Add clause 331: Indemnification by seller.'); score-=4; }
+    if(!hasClause('non-compete','non compete','§542')){ flag('med','No non-compete clause — seller could open a competing business next door.','Add clause 313: Non-compete (FL §542.335).'); score-=7; }
   }
+
+  // ── Lease specific ────────────────────────────────────────────
+  if(dtype==='Lease'){
+    if(!hasClause('nnn','triple net','cam')){ flag('med','No NNN/CAM clause — who pays taxes, insurance, maintenance?','Add clause 403: Triple net (NNN) expense pass-through.'); score-=8; }
+    if(!hasClause('renewal','extension option')){ flag('med','No renewal option — tenant has no right to stay at lease end.','Add clause 408: Renewal / extension option.'); score-=7; }
+    if(!hasClause('security deposit')){ flag('low','No security deposit clause.','Add clause 406: Security deposit (FL §83.49).'); score-=3; }
+    if(!hasClause('permitted use')){ flag('med','No permitted use clause — what is the tenant allowed to do here?','Add clause 407: Permitted use clause.'); score-=6; }
+  }
+
+  // ── Property-type specific ────────────────────────────────────
   if(ptype==='Restaurant / Bar'||ptype==='Restaurant'){
-    const hasLiquor = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&(c.name.toLowerCase().includes('liquor')||c.name.toLowerCase().includes('dabt')||c.name.toLowerCase().includes('license')); });
-    if(!hasLiquor){ flags.push({sev:'high',msg:'Restaurant/Bar deal with no liquor license clause \u2014 DABT transfer is critical in Florida.'}); score-=15; }
+    if(!hasClause('dabt','liquor','license transfer')){ flag('high','Restaurant/Bar: No DABT/liquor license transfer clause — this is the #1 deal-killer in FL restaurant sales.','Add clause 305: Liquor license transfer (FL DABT).'); score-=15; }
+    if(!hasClause('bulk sale')){ flag('med','Restaurant/Bar: No bulk sales compliance clause — FL requires creditor notice.','Add clause 327: Bulk sales compliance (FL).'); score-=7; }
   }
   if(ptype==='Franchise'){
-    const hasFranchisor = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&c.name.toLowerCase().includes('franchisor'); });
-    if(!hasFranchisor){ flags.push({sev:'high',msg:'Franchise deal with no franchisor approval clause \u2014 required for all FL franchise transfers.'}); score-=15; }
+    if(!hasClause('franchisor')){ flag('high','Franchise: No franchisor approval clause — all franchise transfers require franchisor consent.','Add clause 307: Franchisor approval contingency.'); score-=15; }
   }
-  if(dealType==='Lease'){
-    const hasNNN = [...(d.clauses||[])].some(id=>{ const c=CLAUSES.find(x=>x.id===id); return c&&(c.name.toLowerCase().includes('nnn')||c.name.toLowerCase().includes('triple net')||c.name.toLowerCase().includes('cam')); });
-    if(!hasNNN){ flags.push({sev:'med',msg:'Lease deal with no NNN/CAM clause \u2014 clarify expense responsibilities.'}); score-=8; }
+  if(ptype==='Industrial'){
+    if(!hasClause('environmental')){ flag('med','Industrial property: No environmental contingency — Phase I recommended.','Add clause 309: Environmental / Phase I contingency.'); score-=8; }
   }
-  if(flags.length===0) flags.push({sev:'good',msg:'No major issues found. Review all placeholders in your LOI before sending.'});
-  score = Math.max(0,Math.min(100,score));
-  // Render score ring
+
+  // ── Timeline risk ─────────────────────────────────────────────
+  if(d.date){
+    const daysToClose = Math.round((new Date(d.date)-Date.now())/(1000*60*60*24));
+    if(daysToClose<0) flag('high','Deal is past its target close date ('+Math.abs(daysToClose)+' days overdue).', null);
+    else if(daysToClose<14) flag('med','Closing in '+daysToClose+' days — confirm all contingencies are cleared.', null);
+    else if(daysToClose<30) flag('low','Closing in '+daysToClose+' days — stay on top of outstanding items.', null);
+  }
+
+  if(flags.length===0) flag('good','\u2713 No major issues found. Review all [PLACEHOLDERS] in your LOI before sending.', null);
+  score = Math.max(0, Math.min(100, score));
+
+  // ── Render ring ───────────────────────────────────────────────
   const ring = document.getElementById('health-score-ring');
   const scoreEl = document.getElementById('health-score-num');
   const scoreLabel = document.getElementById('health-score-label');
   if(ring){
-    const color = score>=80?'var(--teal)':score>=60?'var(--gold)':'var(--plum)';
-    const pct = score/100; const circ=251;
+    const color = score>=80?'var(--teal)':score>=55?'var(--gold)':'var(--plum)';
     ring.style.stroke=color;
-    ring.style.strokeDashoffset = circ*(1-pct);
+    ring.style.strokeDashoffset = 251*(1-score/100);
   }
   if(scoreEl) scoreEl.textContent=score;
-  if(scoreLabel) scoreLabel.textContent=score>=80?'Strong':score>=60?'Fair':'Needs Work';
+  if(scoreLabel) scoreLabel.textContent=score>=80?'Strong':score>=55?'Fair':'Needs Work';
+
+  // ── Render flags ──────────────────────────────────────────────
+  const sevColor={high:'var(--plum)',med:'var(--gold)',low:'var(--g400)',good:'var(--teal)'};
+  const sevLabel={high:'\u26a0\ufe0f High',med:'\u25b2 Medium',low:'\u2022 Low',good:'\u2713 Good'};
   const flagsEl = document.getElementById('health-flags');
   if(flagsEl){
-    const sevColor={high:'var(--plum)',med:'var(--gold)',good:'var(--teal)'};
-    const sevLabel={high:'High','med':'Medium',good:'Good'};
-    flagsEl.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--g500);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">'+flags.length+' item'+(flags.length===1?'':'s')+'</div>'
-      + flags.map(f=>'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;padding:10px 12px;background:var(--g50);border-radius:8px;border-left:3px solid '+sevColor[f.sev]+';">'
-        +'<div style="font-size:10px;font-weight:700;color:'+sevColor[f.sev]+';text-transform:uppercase;padding-top:2px;white-space:nowrap;">'+sevLabel[f.sev]+'</div>'
-        +'<div style="font-size:12.5px;color:var(--g800);line-height:1.6;">'+f.msg+'</div>'
+    flagsEl.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--g500);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">'
+      +score+'/100 \u2014 '+flags.filter(f=>f.sev!=='good').length+' issue(s) found</div>'
+      + flags.map(f=>'<div style="margin-bottom:10px;padding:10px 12px;background:var(--g50);border-radius:8px;border-left:3px solid '+sevColor[f.sev]+';">'
+        +'<div style="font-size:10px;font-weight:700;color:'+sevColor[f.sev]+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">'+sevLabel[f.sev]+'</div>'
+        +'<div style="font-size:12.5px;color:var(--g800);line-height:1.6;margin-bottom:'+(f.fix?'4':'0')+'px;">'+f.msg+'</div>'
+        +(f.fix?'<div style="font-size:11px;color:var(--teal-d);">\u2192 '+f.fix+'</div>':'')
         +'</div>').join('');
   }
-  toast('Health check complete \u2014 score: '+score+'/100');
+  toast('Health check: '+score+'/100 \u2014 '+flags.filter(f=>f.sev==='high').length+' critical issue(s)');
 }
 
 function updateHealthSnapshot(){
@@ -2182,15 +2226,32 @@ function renderEmailTemplates(){
     </button>`).join('');
 }
 
-async function draftEmail(templateIdx){
+function draftEmail(templateIdx){
   const d = deals.find(x=>x.id===activeDealId);
   const out = document.getElementById('email-result');
   const copyBtn = document.getElementById('copy-email-btn');
-  const body = getEmailBody(templateIdx, d);
+  let body = getEmailBody(templateIdx, d);
   if(!body){ toast('Template not found.'); return; }
-  out.innerHTML = '<div class="email-out" id="email-result-inner">' + body.split('\n').join('<br/>') + '</div>';
+
+  // Smart pre-fill: replace common placeholders with active deal data
+  if(d){
+    if(d.loiBuyer)   body = body.replace(/\[BUYER\s*\/?\s*TENANT NAME\]/gi, d.loiBuyer).replace(/\[BUYER\]/gi, d.loiBuyer);
+    if(d.loiSeller)  body = body.replace(/\[SELLER\s*\/?\s*LANDLORD NAME\]/gi, d.loiSeller).replace(/\[SELLER\]/gi, d.loiSeller);
+    if(d.loiPrice)   body = body.replace(/\[PRICE\s*\/?\s*RENT\]/gi, d.loiPrice);
+    if(d.loiAddr)    body = body.replace(/\[ADDRESS\]/gi, d.loiAddr).replace(/\[PROPERTY ADDRESS\]/gi, d.loiAddr);
+    if(d.client)     body = body.replace(/\[CLIENT NAME\]/gi, d.client).replace(/\[PROSPECT NAME\]/gi, d.client);
+    if(d.date)       body = body.replace(/\[DATE\]/gi, new Date(d.date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}));
+    if(d.loiTerm)    body = body.replace(/\[TERM\s*\/?\s*CLOSING TIMELINE\]/gi, d.loiTerm);
+  }
+
+  const header = '<div style="font-size:10px;font-weight:600;color:var(--teal-d);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">'
+    +EMAIL_TEMPLATES[templateIdx].icon+' '+EMAIL_TEMPLATES[templateIdx].label
+    +(d?' \u2014 '+d.name:'')+'</div>';
+  out.innerHTML = '<div class="email-out" id="email-result-inner">' + header + body.split('\n').join('<br/>') + '</div>';
   if(copyBtn) copyBtn.style.display='inline-flex';
-  toast('Template loaded — fill in the [ ] placeholders!');
+
+  const placeholders = (body.match(/\[[A-Z][^\]]+\]/g)||[]).length;
+  toast(placeholders>0 ? EMAIL_TEMPLATES[templateIdx].label+' loaded — '+placeholders+' placeholder(s) to fill in.' : EMAIL_TEMPLATES[templateIdx].label+' ready to send!');
 }
 
 function getCompSet(d){
@@ -2253,50 +2314,76 @@ function resetCompliance(){
 
 
 function draftCustomEmail(){
-  const custom = (document.getElementById('email-custom').value||'').trim().toLowerCase();
-  if(!custom){ alert('Describe what you need first.'); return; }
-  const d = deals.find(x=>x.id===activeDealId);
-  const matches = [
-    { keys:['intro','introduc','prospect','new client','reach out','cold'], idx:0 },
-    { keys:['follow','after show','checking in','check in','no response'], idx:1 },
-    { keys:['counter','counter offer','respond to offer','reject offer'], idx:2 },
-    { keys:['loi','letter of intent','send loi','transmit loi'], idx:3 },
-    { keys:['due diligence','request doc','financials','need doc'], idx:4 },
-    { keys:['closing','checklist','pre-clos','close date'], idx:5 },
-    { keys:['commission','invoice','payment','my fee','broker fee'], idx:6 },
-    { keys:['referral','thank you','thank a'], idx:7 },
-    { keys:['price','reduction','lower price','price drop','adjust price'], idx:8 },
-    { keys:['lease','renewal','renew','extend lease'], idx:9 },
+  const raw = (document.getElementById('email-custom').value||'').trim();
+  if(!raw){ alert('Describe what you need — e.g. "follow up after showing, seller not responding"'); return; }
+  const custom = raw.toLowerCase();
+  const tone   = document.getElementById('email-tone').value||'professional';
+  const d      = deals.find(x=>x.id===activeDealId);
+
+  // ── Keyword → template index ─────────────────────────────────────
+  const matchers = [
+    { keys:['intro','introduc','prospect','new contact','reach out','cold','first time','meeting request'], idx:0 },
+    { keys:['follow','after show','check in','no response','heard back','circl back','touch base','update'], idx:1 },
+    { keys:['counter','counter offer','respond offer','reject','push back','come back','too high','too low'], idx:2 },
+    { keys:['loi','letter of intent','send loi','transmit','present offer','submit offer'], idx:3 },
+    { keys:['due diligence','request doc','financials','need doc','p&l','tax return','record','statement'], idx:4 },
+    { keys:['closing','checklist','pre-clos','close date','wire','settlement','final step'], idx:5 },
+    { keys:['commission','invoice','payment','my fee','broker fee','co-broke','split','owed'], idx:6 },
+    { keys:['referral','thank you','thank a','appreciate','grateful','referred'], idx:7 },
+    { keys:['price','reduction','lower','price drop','adjust','too expensive','not moving','reduct'], idx:8 },
+    { keys:['lease','renewal','renew','extend','option','expir','holdover'], idx:9 },
   ];
-  const match = matches.find(m=>m.keys.some(k=>custom.includes(k)));
-  if(match){
-    draftEmail(match.idx);
-  } else {
-    draftEmail(0);
-    toast('Loaded Introduction template — fill in the [ ] placeholders!');
+  const match = matchers.find(m=>m.keys.some(k=>custom.includes(k)));
+  const tplIdx = match ? match.idx : 0;
+
+  // ── Get base template ─────────────────────────────────────────────
+  let body = getEmailBody(tplIdx, d);
+
+  // ── Inject tone adjustments ───────────────────────────────────────
+  if(tone==='friendly'){
+    body = body.replace(/Dear /g,'Hi ').replace(/Respectfully submitted,/,'Thanks,').replace(/Sincerely,/,'Thanks!').replace(/Best regards,/,'Talk soon,');
+  } else if(tone==='urgent'){
+    body = body.replace(/Dear /g,'Dear ').replace(/Respectfully submitted,/,'Please respond urgently,');
+    // Add urgency line after greeting
+    body = body.replace(/\n\nThis /,'\n\nI need to bring this to your attention urgently. This ');
+  } else if(tone==='firm'){
+    body = body.replace(/Dear /g,'Dear ').replace(/Best regards,/,'Regards,').replace(/Thank you for your time/g,'I expect your response');
   }
+
+  // ── Inject custom context from user's description ─────────────────
+  // Extract specific details from what they typed
+  const customContext = [];
+
+  // Days mentioned
+  const dayMatch = raw.match(/(\d+)\s*day/i);
+  if(dayMatch) customContext.push(`(Note: ${dayMatch[0]} referenced)`);
+
+  // Names mentioned (capitalized words not at start of sentence)
+  const nameMatch = raw.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g);
+  if(nameMatch && nameMatch.length){
+    const filtered = nameMatch.filter(n=>!['This','Dear','Hi','The','Florida','Note','Please'].includes(n));
+    if(filtered.length) body = body.replace('[PROSPECT NAME]', filtered[0]).replace('[CLIENT NAME]', filtered[0]);
+  }
+
+  // Dollar amounts mentioned
+  const dollarMatch = raw.match(/\$[\d,]+[k|K|m|M]?/);
+  if(dollarMatch) body = body.replace('[COUNTER PRICE]', dollarMatch[0]).replace('[AMOUNT]', dollarMatch[0]);
+
+  // ── Add P.S. with user's specific context ────────────────────────
+  if(raw.length > 15){
+    body += '\n\nP.S. ' + raw.charAt(0).toUpperCase() + raw.slice(1) + (raw.endsWith('.')?'':'.') + ' Please prioritize accordingly.';
+  }
+
+  const out = document.getElementById('email-result');
+  const copyBtn = document.getElementById('copy-email-btn');
+  out.innerHTML = '<div class="email-out" id="email-result-inner">'
+    + '<div style="font-size:10px;font-weight:600;color:var(--teal-d);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">📧 '+EMAIL_TEMPLATES[tplIdx].icon+' '+EMAIL_TEMPLATES[tplIdx].label+' ('+tone+')</div>'
+    + body.split('\n').join('<br/>')
+    + '</div>';
+  if(copyBtn) copyBtn.style.display='inline-flex';
+  toast('✅ Drafted: '+EMAIL_TEMPLATES[tplIdx].label+' template');
 }
 
-// ── INIT
-initSidebar();
-const hadData = loadState();
-if(hadData && activeDealId){
-  const ad = deals.find(x=>x.id===activeDealId);
-  if(ad){
-    const chip=document.getElementById('deal-chip'); if(chip){ chip.textContent=ad.name; chip.className='on'; }
-    const sd=document.getElementById('stat-deal'); if(sd) sd.textContent=ad.name;
-    const sl=document.getElementById('stat-loi'); if(sl) sl.textContent=ad.loiDone?'Generated':'Not started';
-    // Restore LOI fields
-    const flds={'loi-addr':ad.loiAddr||'','loi-buyer':ad.loiBuyer||'','loi-seller':ad.loiSeller||'','loi-price':ad.loiPrice||'','loi-term':ad.loiTerm||'','loi-sqft':ad.loiSqft||'','loi-notes':ad.loiNotes||''};
-    Object.entries(flds).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value=val; });
-    // Restore notes
-    const nt=document.getElementById('notes-ta'); if(nt) nt.value=ad.dealNotes||'';
-    const dn=document.getElementById('dash-notes'); if(dn) dn.value=ad.dealNotes||'';
-    const ct=document.getElementById('notes-ct'); if(ct) ct.textContent=(ad.dealNotes||'').length+' characters';
-  }
-}
-renderClauses(); renderSelTags(); renderEmailTemplates(); refreshAll(); updateStats();
-if(hadData && deals.length) toast('Welcome back — ' + deals.filter(d=>d.status!=='archived').length + ' deals loaded.');
 function buildLOI(){
   const addr   = document.getElementById('loi-addr').value.trim()   || '[PROPERTY ADDRESS]';
   const buyer  = document.getElementById('loi-buyer').value.trim()  || '[BUYER / TENANT NAME]';
@@ -2305,13 +2392,44 @@ function buildLOI(){
   const trans  = document.getElementById('loi-trans').value;
   const term   = document.getElementById('loi-term').value.trim()   || '[TERM / CLOSING TIMELINE]';
   const sqft   = document.getElementById('loi-sqft').value.trim();
-  const notes  = document.getElementById('loi-notes').value.trim();
+  const notesRaw = document.getElementById('loi-notes').value.trim();
   const ptype  = document.getElementById('loi-ptype').value;
   const out    = document.getElementById('loi-out');
   const today  = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const isLease = trans==='lease';
   const clauseList = CLAUSES.filter(c=>selectedClauses.has(c.id));
   const bar = '\u2501'.repeat(42);
+
+  // ── Smart parse notes for key terms ──────────────────────────────
+  const notesLower = notesRaw.toLowerCase();
+  const smartTerms = [];
+
+  // Detect special conditions in notes and inject smart clauses
+  if(notesLower.match(/cash|no financ|all cash/)) smartTerms.push('Cash transaction — no financing contingency required.');
+  if(notesLower.match(/sba|small business/)) smartTerms.push('SBA financing anticipated — allow 60-90 days for lender approval.');
+  if(notesLower.match(/licens|permit|dabt|liquor|beer|wine/)) smartTerms.push('License transfer required — contingent on successful transfer of all applicable licenses.');
+  if(notesLower.match(/franchise|franchisor/)) smartTerms.push('Franchise transfer — contingent on franchisor written approval of buyer.');
+  if(notesLower.match(/as.?is|as is/)) smartTerms.push('Property/assets accepted AS-IS, WHERE-IS. Buyer relies solely on their own due diligence.');
+  if(notesLower.match(/seller financ|carry|note|carry back/)) smartTerms.push('Seller financing anticipated — terms to be memorialized in a promissory note secured by the assets.');
+  if(notesLower.match(/non.?compet|non compet/)) smartTerms.push('Seller to execute a non-compete agreement per FL §542.335 at closing.');
+  if(notesLower.match(/train|transition/)) smartTerms.push('Seller to provide [NUMBER] days/hours of transition training at no additional cost to buyer.');
+  if(notesLower.match(/inventory/)) smartTerms.push('Purchase price subject to physical inventory count at closing; price adjusted accordingly.');
+  if(notesLower.match(/1031|exchange/)) smartTerms.push('Buyer/Seller may elect a 1031 exchange; other party agrees to reasonable cooperation.');
+  if(notesLower.match(/leaseback|lease back/)) smartTerms.push('Seller to lease back premises for [PERIOD] post-closing at [RATE]; terms to be negotiated.');
+  if(notesLower.match(/due diligence|\bdd\b/)) {
+    const ddMatch = notesRaw.match(/(\d+)\s*day/i);
+    if(ddMatch) smartTerms.push('Due diligence period: '+ddMatch[1]+' business days from full execution.');
+  }
+
+  // Auto-detect ptype-specific requirements not already in clauses
+  const clauseNames = clauseList.map(c=>c.name.toLowerCase());
+  if((ptype==='Restaurant / Bar'||ptype==='Restaurant') && !clauseNames.some(n=>n.includes('dabt')||n.includes('liquor'))){
+    smartTerms.push('⚠️ RECOMMENDED: Add DABT liquor license transfer clause — critical for restaurant/bar sales in Florida.');
+  }
+  if(ptype==='Franchise' && !clauseNames.some(n=>n.includes('franchisor'))){
+    smartTerms.push('⚠️ RECOMMENDED: Add franchisor approval contingency — required for all FL franchise transfers.');
+  }
+
   let t='';
   t+=today+'\n\nRE: LETTER OF INTENT \u2014 '+(isLease?'LEASE':'PURCHASE')+'\n';
   t+='Property / Business: '+addr+'\n';
@@ -2339,11 +2457,23 @@ function buildLOI(){
     t+='Inventory:         [INCLUDED / EXCLUDED / SEE SCHEDULE]\n';
     t+="FF&E:              [INCLUDED / EXCLUDED / SEE SCHEDULE]\n";
   }
+
+  // Smart terms parsed from notes
+  if(smartTerms.length){
+    t+='\nSPECIAL CONDITIONS (auto-detected from your notes)\n'+bar+'\n';
+    smartTerms.forEach((st,i)=>{ t+=(i+1)+'. '+st+'\n'; });
+  }
+
   if(clauseList.length){
     t+='\nCONTINGENCIES AND SPECIAL TERMS\n'+bar+'\n';
     clauseList.forEach((c,i)=>{ t+=(i+1)+'. '+c.name+':\n'+c.text.substring(0,250)+(c.text.length>250?'...':'')+'\n\n'; });
   }
-  if(notes){ t+='\nADDITIONAL TERMS\n'+bar+'\n'+notes+'\n'; }
+
+  // Raw notes as Additional Terms
+  if(notesRaw){
+    t+='\nADDITIONAL TERMS / NOTES\n'+bar+'\n'+notesRaw+'\n';
+  }
+
   t+='\nFLORIDA DISCLOSURES\n'+bar+'\n';
   t+='This LOI is governed by the laws of the State of Florida. ';
   t+='Broker represents [BUYER / SELLER / BOTH] pursuant to FL \u00a7475. ';
@@ -2352,17 +2482,21 @@ function buildLOI(){
   t+='This LOI expires if not acknowledged within three (3) business days.\n\n';
   t+='Respectfully submitted,\n\n\n'+buyer+'\nSignature: _______________________  Date: ______________\n\n';
   t+='Acknowledged by:\n\n\n'+seller+'\nSignature: _______________________  Date: ______________\n';
+
   const actions='<div class="btn-group" style="margin-top:10px;">'
     +'<button class="btn btn-sm btn-out" onclick="copyEl(\'loi-text\')">Copy LOI</button>'
     +'<button class="btn btn-sm btn-teal" onclick="window.print()">Print / Save PDF</button>'
+    +(smartTerms.length?'<span style="font-size:11px;color:var(--teal-d);padding:4px 8px;">✨ '+smartTerms.length+' smart term'+(smartTerms.length===1?'':'s')+' detected</span>':'')
     +'</div>';
+
   out.innerHTML='<div class="obox" id="loi-text">'+t+'</div>'+actions;
   const lcb=document.getElementById('loi-copy-btn'); if(lcb) lcb.style.display='inline-flex';
   const d2=deals.find(x=>x.id===activeDealId);
   if(d2){ d2.loiAddr=addr;d2.loiBuyer=buyer;d2.loiSeller=seller;d2.loiPrice=price;
-    d2.loiTerm=term; d2.loiSqft=sqft; d2.loiNotes=notes; d2.loiDone=true; saveState(); }
+    d2.loiTerm=term; d2.loiSqft=sqft; d2.loiNotes=notesRaw; d2.loiDone=true; saveState(); }
   const sl=document.getElementById('stat-loi'); if(sl) sl.textContent='Generated';
-  toast('LOI generated!');
+  const msg = smartTerms.length ? 'LOI generated — '+smartTerms.length+' smart term(s) added from your notes!' : 'LOI generated!';
+  toast(msg);
 }
 
 function toggleSidebar(){
