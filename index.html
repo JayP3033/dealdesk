@@ -2315,73 +2315,275 @@ function resetCompliance(){
 
 function draftCustomEmail(){
   const raw = (document.getElementById('email-custom').value||'').trim();
-  if(!raw){ alert('Describe what you need — e.g. "follow up after showing, seller not responding"'); return; }
-  const custom = raw.toLowerCase();
-  const tone   = document.getElementById('email-tone').value||'professional';
-  const d      = deals.find(x=>x.id===activeDealId);
+  if(!raw){ alert('Describe what you need — e.g. "follow up with John, he hasn\'t responded to the LOI in 4 days"'); return; }
+  const tone  = document.getElementById('email-tone').value||'professional';
+  const d     = deals.find(x=>x.id===activeDealId);
 
-  // ── Keyword → template index ─────────────────────────────────────
-  const matchers = [
-    { keys:['intro','introduc','prospect','new contact','reach out','cold','first time','meeting request'], idx:0 },
-    { keys:['follow','after show','check in','no response','heard back','circl back','touch base','update'], idx:1 },
-    { keys:['counter','counter offer','respond offer','reject','push back','come back','too high','too low'], idx:2 },
-    { keys:['loi','letter of intent','send loi','transmit','present offer','submit offer'], idx:3 },
-    { keys:['due diligence','request doc','financials','need doc','p&l','tax return','record','statement'], idx:4 },
-    { keys:['closing','checklist','pre-clos','close date','wire','settlement','final step'], idx:5 },
-    { keys:['commission','invoice','payment','my fee','broker fee','co-broke','split','owed'], idx:6 },
-    { keys:['referral','thank you','thank a','appreciate','grateful','referred'], idx:7 },
-    { keys:['price','reduction','lower','price drop','adjust','too expensive','not moving','reduct'], idx:8 },
-    { keys:['lease','renewal','renew','extend','option','expir','holdover'], idx:9 },
-  ];
-  const match = matchers.find(m=>m.keys.some(k=>custom.includes(k)));
-  const tplIdx = match ? match.idx : 0;
+  // ══════════════════════════════════════════════
+  //  MINI-NLP ENGINE
+  //  Step 1: Extract entities from the description
+  // ══════════════════════════════════════════════
+  const txt   = raw;
+  const lower = raw.toLowerCase();
 
-  // ── Get base template ─────────────────────────────────────────────
-  let body = getEmailBody(tplIdx, d);
+  // --- Names (capitalised words, filter common words) ---
+  const STOP = new Set(['I','Me','My','The','This','That','They','Their','He','She','We','For',
+    'After','Before','About','With','From','Have','Has','Not','But','And','Or','If','Is','Are',
+    'Was','Will','Can','Should','Would','Please','Dear','Hi','Hello','Thank','Also','Just',
+    'Follow','Send','Write','Need','Want','Going','Been','Still','When','What','How','Who',
+    'Deal','LOI','NDA','SBA','FL','Florida','CRE','BBF','PDF','Re','Subject','Note']);
+  const names = [...new Set(
+    (txt.match(/\b([A-Z][a-z]{1,}(?:\s[A-Z][a-z]{1,})?)\b/g)||[]).filter(n=>!STOP.has(n.split(' ')[0]))
+  )];
+  const person1 = names[0]||null;
+  const person2 = names[1]||null;
 
-  // ── Inject tone adjustments ───────────────────────────────────────
-  if(tone==='friendly'){
-    body = body.replace(/Dear /g,'Hi ').replace(/Respectfully submitted,/,'Thanks,').replace(/Sincerely,/,'Thanks!').replace(/Best regards,/,'Talk soon,');
-  } else if(tone==='urgent'){
-    body = body.replace(/Dear /g,'Dear ').replace(/Respectfully submitted,/,'Please respond urgently,');
-    // Add urgency line after greeting
-    body = body.replace(/\n\nThis /,'\n\nI need to bring this to your attention urgently. This ');
-  } else if(tone==='firm'){
-    body = body.replace(/Dear /g,'Dear ').replace(/Best regards,/,'Regards,').replace(/Thank you for your time/g,'I expect your response');
+  // --- Dollar amounts ---
+  const dollars = (txt.match(/\$[\d,]+(?:\.\d{2})?[kKmM]?/g)||[]);
+  const amount1 = dollars[0]||null;
+
+  // --- Days / time ---
+  const dayMatches = lower.match(/(\d+)\s*(business\s)?day[s]?/);
+  const days = dayMatches ? dayMatches[1] : null;
+  const weekMatches = lower.match(/(\d+)\s*week[s]?/);
+  const weeks = weekMatches ? weekMatches[1] : null;
+  const timeRef = days ? days+' days' : weeks ? weeks+' weeks' : null;
+
+  // --- Date references ---
+  const dateMatch = txt.match(/\b(\w+ \d{1,2}(?:st|nd|rd|th)?(?:,?\s*\d{4})?)\b/);
+  const dateRef = dateMatch ? dateMatch[1] : null;
+
+  // --- Deal data from active deal ---
+  const dealName   = d ? d.name   : null;
+  const dealClient = d ? d.client : null;
+  const dealAddr   = d ? (d.loiAddr||d.name) : null;
+  const dealPrice  = d ? d.value  : null;
+  const dealType   = d ? d.ptype  : null;
+
+  // Merge: prefer extracted > deal data > placeholder
+  const buyerName   = person1 || dealClient || '[BUYER/TENANT NAME]';
+  const sellerName  = person2 || '[SELLER/LANDLORD NAME]';
+  const propertyRef = dealAddr || dealName || '[PROPERTY/BUSINESS]';
+  const priceRef    = amount1 || dealPrice || '[PRICE]';
+
+  // ══════════════════════════════════════════════
+  //  Step 2: Detect intent — what kind of email?
+  // ══════════════════════════════════════════════
+  const intents = {
+    noResponse:   /no response|hasn.t respond|not respond|silence|ignored|ghost|haven.t heard|no reply|waiting|still waiting/i.test(txt),
+    followUp:     /follow.?up|check.?in|touch base|circle back|wanted to follow|reaching out again/i.test(txt),
+    sendDoc:      /send|attach|forward|transmit|here is|please find|enclosed/i.test(txt),
+    requestDoc:   /need|request|require|can you send|please provide|looking for|missing doc|financials|tax|p&l|statement/i.test(txt),
+    counter:      /counter|push back|too high|too low|respond to offer|their offer|come back|negotiate/i.test(txt),
+    urgency:      /urgent|asap|immediately|time.sensitive|deadline|expir|runs out|today|tomorrow|by [A-Z]/i.test(txt),
+    closing:      /closing|close|settlement|wire|final|almost done|wrap up|finish/i.test(txt),
+    intro:        /introduc|first time|new contact|prospect|reach out|meeting|connect/i.test(txt),
+    thankYou:     /thank|appreciate|grateful|referral/i.test(txt),
+    price:        /price|reduc|lower|adjust|drop|cut|market/i.test(txt),
+    lease:        /lease|renew|renewal|extend|option|expir|holdover/i.test(txt),
+    commission:   /commission|invoice|fee|payment|owed|split|co-broke/i.test(txt),
+    loi:          /\bloi\b|letter of intent|offer|present offer|submit/i.test(txt),
+    diligence:    /due diligence|inspection|review period|dd|investigate/i.test(txt),
+    badNews:      /fell through|dead|cancel|terminat|walk away|back out|not moving forward/i.test(txt),
+    goodNews:     /accepted|congrat|signed|under contract|we got it|approved|closed/i.test(txt),
+  };
+
+  // ══════════════════════════════════════════════
+  //  Step 3: Tone vocabulary
+  // ══════════════════════════════════════════════
+  const TV = {
+    professional: {
+      greet: 'Dear', sign: 'Best regards', hope: 'I hope this message finds you well.',
+      ask: 'I would appreciate', avail: 'I am available', look: 'I look forward to hearing from you.',
+      note: 'I wanted to reach out regarding', thanks: 'Thank you for your time.',
+    },
+    friendly: {
+      greet: 'Hi', sign: 'Talk soon', hope: 'Hope you\'re doing well!',
+      ask: 'Would love to', avail: 'I\'m around', look: 'Looking forward to connecting!',
+      note: 'Just wanted to touch base about', thanks: 'Really appreciate your time.',
+    },
+    urgent: {
+      greet: 'Dear', sign: 'Please respond urgently', hope: 'I need to bring a time-sensitive matter to your attention.',
+      ask: 'I must request', avail: 'I need a response', look: 'Please respond at your earliest convenience — this is time-sensitive.',
+      note: 'I am writing urgently regarding', thanks: 'Your prompt attention is required.',
+    },
+    firm: {
+      greet: 'Dear', sign: 'Regards', hope: 'I am writing to address an outstanding matter.',
+      ask: 'I expect', avail: 'I require a response', look: 'I expect your written response within 48 hours.',
+      note: 'I am following up on', thanks: 'I trust this will be addressed promptly.',
+    },
+  };
+  const T = TV[tone]||TV.professional;
+  const today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  // ══════════════════════════════════════════════
+  //  Step 4: Build email from scratch
+  // ══════════════════════════════════════════════
+  let subject = '';
+  let body = '';
+  let paragraphs = [];
+
+  // ── Opening paragraph ───────────────────────────────────────
+  let opening = T.hope;
+
+  // ── Detect primary intent and build subject + core paragraphs ──
+
+  if(intents.noResponse){
+    const sinceRef = timeRef ? 'over the past '+timeRef : 'recently';
+    subject = 'Following Up — '+propertyRef+(intents.loi?' | LOI Pending':'');
+    paragraphs.push(T.note+' '+propertyRef+'. I sent correspondence '+sinceRef+' and have not yet received a response.');
+    if(intents.loi) paragraphs.push('The Letter of Intent regarding '+propertyRef+(priceRef&&priceRef!=='[PRICE]'?' at '+priceRef:'')+' remains outstanding. Please advise whether you have had the opportunity to review it and whether the proposed terms are acceptable.');
+    else paragraphs.push('I want to ensure my message was received and that there are no outstanding questions or concerns on your end that I can address.');
+    if(intents.urgency||tone==='urgent'||tone==='firm'){
+      paragraphs.push('Please be advised that '+(dateRef?'this matter requires your attention by '+dateRef:'time is a factor in this transaction')+'. A delayed response may affect the timeline and terms of the deal.');
+    }
+    paragraphs.push(T.avail+' to connect by phone or email at your convenience. '+T.look);
   }
 
-  // ── Inject custom context from user's description ─────────────────
-  // Extract specific details from what they typed
-  const customContext = [];
-
-  // Days mentioned
-  const dayMatch = raw.match(/(\d+)\s*day/i);
-  if(dayMatch) customContext.push(`(Note: ${dayMatch[0]} referenced)`);
-
-  // Names mentioned (capitalized words not at start of sentence)
-  const nameMatch = raw.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g);
-  if(nameMatch && nameMatch.length){
-    const filtered = nameMatch.filter(n=>!['This','Dear','Hi','The','Florida','Note','Please'].includes(n));
-    if(filtered.length) body = body.replace('[PROSPECT NAME]', filtered[0]).replace('[CLIENT NAME]', filtered[0]);
+  else if(intents.counter){
+    subject = 'Counter Offer — '+propertyRef;
+    paragraphs.push(T.note+' the offer received for '+propertyRef+'.');
+    if(amount1){
+      paragraphs.push('After careful review, our client respectfully submits a counter at '+amount1+'.'+(timeRef?' This counter is valid for '+timeRef+'.':'  This counter is valid for three (3) business days.'));
+    } else {
+      paragraphs.push('After careful review, our client would like to propose revised terms. The specific counter terms are as follows:\n\n• Purchase Price / Rent: [COUNTER AMOUNT]\n• Closing / Possession: [DATE]\n• Key Contingencies: [LIST]');
+    }
+    paragraphs.push('We remain motivated to reach a mutually agreeable outcome and hope this response moves us closer to execution. '+T.ask+' your prompt consideration.');
+    paragraphs.push(T.look);
   }
 
-  // Dollar amounts mentioned
-  const dollarMatch = raw.match(/\$[\d,]+[k|K|m|M]?/);
-  if(dollarMatch) body = body.replace('[COUNTER PRICE]', dollarMatch[0]).replace('[AMOUNT]', dollarMatch[0]);
-
-  // ── Add P.S. with user's specific context ────────────────────────
-  if(raw.length > 15){
-    body += '\n\nP.S. ' + raw.charAt(0).toUpperCase() + raw.slice(1) + (raw.endsWith('.')?'':'.') + ' Please prioritize accordingly.';
+  else if(intents.goodNews){
+    subject = '🎉 Great News — '+propertyRef;
+    paragraphs.push('I am pleased to share some exciting news regarding '+propertyRef+'.');
+    paragraphs.push(raw.charAt(0).toUpperCase()+raw.slice(1)+(raw.endsWith('.')?'':'.')
+      +' This is a great outcome and a reflection of the work we have all put into this transaction.');
+    paragraphs.push('I will follow up shortly with next steps and any outstanding items. '+T.thanks);
   }
+
+  else if(intents.badNews){
+    subject = 'Update on '+propertyRef;
+    paragraphs.push(T.note+' '+propertyRef+'. Unfortunately, I have an update to share regarding the status of this transaction.');
+    paragraphs.push(raw.charAt(0).toUpperCase()+raw.slice(1)+(raw.endsWith('.')?'.':'. ')+'I understand this is not the outcome we were working toward, and I want to ensure a smooth process from here.');
+    paragraphs.push(T.avail+' to discuss next steps, alternative options, or any questions you may have. '+T.look);
+  }
+
+  else if(intents.requestDoc){
+    subject = 'Document Request — '+propertyRef;
+    paragraphs.push(T.note+' '+propertyRef+'. In order to '+(intents.diligence?'complete our due diligence':'move this transaction forward')+', '+T.ask.toLowerCase()+' the following from you'+(timeRef?' within the next '+timeRef:'')+':');
+    // Parse requested docs from the description
+    const docList = [];
+    if(/financial|p&l|profit|loss/i.test(txt)) docList.push('Financial statements / P&L (last 2-3 years)');
+    if(/tax/i.test(txt)) docList.push('Business/property tax returns (last 2-3 years)');
+    if(/lease/i.test(txt)) docList.push('Current lease agreement and any amendments');
+    if(/licens/i.test(txt)) docList.push('All applicable licenses and permits');
+    if(/inventory/i.test(txt)) docList.push('Current inventory list with values');
+    if(/equipment/i.test(txt)) docList.push('Equipment list and condition report');
+    if(/contract|vendor/i.test(txt)) docList.push('Vendor and supplier contracts');
+    if(/employee/i.test(txt)) docList.push('Employee list (titles and compensation)');
+    if(docList.length===0) docList.push('[LIST SPECIFIC DOCUMENTS NEEDED]');
+    paragraphs.push(docList.map((doc,i)=>'\u2022 '+doc).join('\n'));
+    paragraphs.push('Please send to [YOUR EMAIL]'+(timeRef?'. Our deadline is in '+timeRef:'')+'.');
+  }
+
+  else if(intents.closing){
+    subject = 'Closing Update — '+propertyRef+(dateRef?' | '+dateRef:'');
+    paragraphs.push(T.note+' the upcoming closing for '+propertyRef+(dateRef?' scheduled for '+dateRef:'')+'.');
+    paragraphs.push('To ensure a smooth closing, please confirm the following are in order:\n\n\u2022 All contingencies cleared and in writing\n\u2022 Closing funds / wire instructions confirmed\n\u2022 All parties available'+(dateRef?' on '+dateRef:' for closing')+'\n\u2022 Executed documents delivered to closing agent\n\u2022 Keys, codes, and access arrangements confirmed');
+    paragraphs.push(T.avail+' to address any last-minute questions. '+T.look);
+  }
+
+  else if(intents.price){
+    subject = 'Pricing Recommendation — '+propertyRef;
+    paragraphs.push(T.note+' the current pricing for '+propertyRef+'.');
+    paragraphs.push('Based on current market conditions and feedback received'+(timeRef?' over the past '+timeRef:''),
+      ' '+T.ask.toLowerCase()+' we discuss a strategic price adjustment to increase buyer activity and generate qualified offers.');
+    if(amount1) paragraphs.push('A revised asking price of '+amount1+' would better align with comparable transactions in this market and attract stronger offers.');
+    else paragraphs.push('I will prepare a comparative market analysis for our discussion. Current pricing may be limiting our exposure to qualified buyers.');
+    paragraphs.push(T.avail+' for a call to discuss. '+T.look);
+  }
+
+  else if(intents.thankYou){
+    subject = 'Thank You'+(person1?' — '+person1:'');
+    paragraphs.push('I wanted to take a moment to personally thank you'+(raw.toLowerCase().includes('referral')?' for the referral':'')+'. '+(person1?'Your support means a great deal.':'Your time and trust are genuinely appreciated.'));
+    paragraphs.push(raw.charAt(0).toUpperCase()+raw.slice(1)+(raw.endsWith('.')?'':'.'));
+    paragraphs.push('If there is anything I can do to reciprocate or be of service, please don\'t hesitate to reach out.');
+  }
+
+  else if(intents.lease){
+    subject = 'Lease '+(lower.includes('renew')?'Renewal':'Update')+' — '+propertyRef;
+    paragraphs.push(T.note+' the '+(lower.includes('renew')?'upcoming lease renewal':'lease status')+' for '+propertyRef+'.');
+    if(lower.includes('expir')||lower.includes('renew')){
+      paragraphs.push('The current lease is approaching expiration'+(dateRef?' on '+dateRef:'')+'. To protect your position and avoid holdover provisions — which can increase rent to 150% of the current rate — I recommend we begin renewal negotiations promptly.');
+      paragraphs.push('I have prepared proposed renewal terms for your review:\n\n\u2022 Renewal Term: [NEW TERM]\n\u2022 Proposed Rent: '+(amount1||priceRef)+'\n\u2022 Annual Escalation: [%]\n\u2022 Tenant Improvements: [AMOUNT OR N/A]');
+    } else {
+      paragraphs.push(raw.charAt(0).toUpperCase()+raw.slice(1)+(raw.endsWith('.')?'':'.'));
+    }
+    paragraphs.push(T.avail+' to discuss. '+T.look);
+  }
+
+  else if(intents.intro){
+    subject = 'Introduction — '+(dealType||'Commercial')+' Opportunity';
+    paragraphs.push('My name is [YOUR NAME] and I specialize in Florida commercial real estate and business brokerage'+(dealType?' with a focus on '+dealType+' properties':'')+'. I am reaching out because I believe there may be an opportunity worth discussing.');
+    if(propertyRef!=='[PROPERTY/BUSINESS]') paragraphs.push('Specifically, I wanted to bring '+propertyRef+(priceRef&&priceRef!=='[PRICE]'?' listed at '+priceRef:'')+' to your attention. Based on your profile, I believe this aligns closely with your interests.');
+    paragraphs.push(T.ask+' the opportunity to schedule a brief call. Are you available'+(dateRef?' on '+dateRef:' this week or next')+'?');
+    paragraphs.push(T.look);
+  }
+
+  else if(intents.followUp){
+    subject = 'Following Up — '+propertyRef;
+    paragraphs.push(T.note+' '+propertyRef+(timeRef?' from '+timeRef+' ago':'')+'. I wanted to check in and see if you had any questions or additional thoughts.');
+    paragraphs.push('As a reminder, the key highlights are:\n\u2022 Property / Business: '+propertyRef+'\n\u2022 Price / Rent: '+(priceRef!=='[PRICE]'?priceRef:'[PRICE]')+'\n\u2022 Type: '+(dealType||'[PROPERTY TYPE]'));
+    paragraphs.push(T.avail+' to answer any questions or arrange next steps. '+T.look);
+  }
+
+  else if(intents.loi){
+    subject = 'Letter of Intent — '+propertyRef;
+    paragraphs.push(T.note+' the Letter of Intent for '+propertyRef+'.');
+    paragraphs.push('Please find the LOI attached for your review. Key proposed terms include:\n\n\u2022 Property / Business: '+propertyRef+'\n\u2022 Price / Rent: '+(priceRef!=='[PRICE]'?priceRef:'[TO BE DISCUSSED]')+'\n\u2022 Transaction: '+(d?d.type:'[PURCHASE / LEASE]')+'\n\u2022 Contingencies: ['+(d&&d.clauses&&(d.clauses instanceof Set?d.clauses.size:[...(d.clauses||[])].length)>0?[...(d.clauses instanceof Set?d.clauses:new Set(d.clauses||[]))].length+' clause(s) included':'REVIEW LOI')+']');
+    paragraphs.push('This LOI is non-binding and intended solely to outline proposed terms. I recommend review with your attorney before signing. '+T.ask+' your response within three (3) business days.');
+    paragraphs.push(T.look);
+  }
+
+  // Default: smart general follow-up
+  else {
+    subject = 'RE: '+propertyRef;
+    paragraphs.push(T.note+' '+propertyRef+'.');
+    // Reconstruct their intent as the core paragraph
+    paragraphs.push(raw.charAt(0).toUpperCase()+raw.slice(1)+(raw.endsWith('.')?'':'.')
+      +' I wanted to address this directly and ensure we are aligned on next steps.');
+    paragraphs.push(T.avail+' to discuss further at your convenience. '+T.look);
+  }
+
+  // ── Assemble final email ───────────────────────────────────────
+  const recipient = (intents.noResponse||intents.followUp||intents.counter||intents.requestDoc) ? (buyerName==='[BUYER/TENANT NAME]'?sellerName:buyerName) : buyerName;
+
+  body += 'Subject: '+subject+'\n\n';
+  body += T.greet+' '+(recipient==='[SELLER/LANDLORD NAME]'||recipient==='[BUYER/TENANT NAME]'?'[RECIPIENT NAME]':recipient)+',\n\n';
+  body += opening+'\n\n';
+  body += paragraphs.join('\n\n');
+  body += '\n\n'+T.sign+',\n\n[YOUR NAME]\n[BROKERAGE NAME]\n[PHONE] | [EMAIL]\nFL License #[LICENSE NUMBER]';
+
+  // ── Smart placeholder count ────────────────────────────────────
+  const remaining = (body.match(/\[[A-Z][^\]]+\]/g)||[]).length;
+
+  const header = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--g100);">'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--teal-d);text-transform:uppercase;letter-spacing:.07em;">Custom Draft — '+tone+'</div>'
+    +'<div style="font-size:11px;color:var(--g500);margin-top:2px;">Intent detected: '
+    +Object.entries(intents).filter(([k,v])=>v).map(([k])=>k).join(', ')
+    +(names.length?' \u2022 Names: '+names.join(', '):'')
+    +(amount1?' \u2022 Amount: '+amount1:'')
+    +(timeRef?' \u2022 Time: '+timeRef:'')
+    +'</div>'
+    +'</div>'
+    +(remaining>0?'<div style="font-size:10px;background:var(--gold);color:#fff;padding:2px 7px;border-radius:10px;font-weight:600;">'+remaining+' to fill</div>':'<div style="font-size:10px;background:var(--teal);color:#fff;padding:2px 7px;border-radius:10px;font-weight:600;">Ready ✓</div>')
+    +'</div>';
 
   const out = document.getElementById('email-result');
   const copyBtn = document.getElementById('copy-email-btn');
-  out.innerHTML = '<div class="email-out" id="email-result-inner">'
-    + '<div style="font-size:10px;font-weight:600;color:var(--teal-d);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">📧 '+EMAIL_TEMPLATES[tplIdx].icon+' '+EMAIL_TEMPLATES[tplIdx].label+' ('+tone+')</div>'
-    + body.split('\n').join('<br/>')
-    + '</div>';
+  out.innerHTML = '<div class="email-out" id="email-result-inner">'+header+body.split('\n').join('<br/>')+'</div>';
   if(copyBtn) copyBtn.style.display='inline-flex';
-  toast('✅ Drafted: '+EMAIL_TEMPLATES[tplIdx].label+' template');
+  toast('✅ Email drafted — intent: '+Object.entries(intents).filter(([k,v])=>v).map(([k])=>k).slice(0,2).join(' + '));
 }
 
 function buildLOI(){
